@@ -1,0 +1,492 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../config/model/truck_details_model.dart';
+
+
+class GenerateBillScreen extends StatefulWidget {
+  @override
+  _GenerateBillScreenState createState() => _GenerateBillScreenState();
+}
+
+class _GenerateBillScreenState extends State<GenerateBillScreen> {
+  final _formKey = GlobalKey<FormState>();
+  DateTime? startDate;
+  DateTime? endDate;
+  String? selectedVendor;
+  String? selectedTruck;
+  List<TripDetails> bills = [];
+  bool isLoading = false;
+  Set<String> selectedBills = {};
+  List<String> vendors = [];
+  List<String> trucks = [];
+
+  final TextEditingController _vendorController = TextEditingController();
+  final TextEditingController _truckController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVendors();
+    _loadTrucks();
+  }
+
+  Future<void> _loadVendors() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:5000/logistics/list-vendor'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          vendors = List<String>.from(
+            data['resultData'].map((vendor) => vendor['companyName']),
+          );
+        });
+      }
+    } catch (e) {
+      print('Error loading vendors: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading vendors')),
+      );
+    }
+  }
+
+  Future<void> _loadTrucks() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:5000/logistics/list-vehicle'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          trucks = List<String>.from(
+            data['resultData'].map((truck) => truck['truck_no']),
+          );
+        });
+      }
+    } catch (e) {
+      print('Error loading trucks: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading trucks')),
+      );
+    }
+  }
+
+  Future<void> _searchBills() async {
+    if ((startDate == null || endDate == null) &&
+        selectedVendor == null &&
+        selectedTruck == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please provide search criteria')),
+        );
+      }
+      return;
+    }
+
+    if (startDate != null && endDate != null) {
+      if (startDate!.isAfter(endDate!)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('End date should be greater than or equal to Start Date')),
+          );
+        }
+        return;
+      }
+    }
+
+    setState(() {
+      isLoading = true;
+      bills.clear();
+      selectedBills.clear();
+    });
+
+    try {
+      // Print request details for debugging
+      final requestBody = {
+        'startDate': startDate?.toIso8601String(),
+        'endDate': endDate?.toIso8601String(),
+        'vendor': selectedVendor,
+        'truckNumber': selectedTruck,
+      };
+      print('Request body: ${json.encode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:5000/logistics/list-billing'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestBody),
+      );
+
+      // Print response details for debugging
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        // Check if response has the expected structure
+        if (!data.containsKey('resultData')) {
+          throw Exception('Response missing resultData field');
+        }
+
+        if (data['resultData'] == null) {
+          setState(() {
+            bills = [];
+          });
+          return;
+        }
+
+        if (data['resultData'] is! List) {
+          throw Exception('resultData is not a list');
+        }
+
+        setState(() {
+          bills = List<TripDetails>.from(
+            data['resultData'].map((x) {
+              // Print individual record for debugging
+              print('Processing record: $x');
+
+              return TripDetails(
+                id: x['_id']?.toString() ?? '',
+                truckNumber: x['truck_no']?.toString() ?? '',
+                weight: _parseDouble(x['weight']),
+                actualWeight: _parseDouble(x['actual_weight']),
+                differenceInWeight: _parseDouble(x['difference_weight']),
+                freight: _parseDouble(x['freight']),
+                diesel: _parseDouble(x['diesel']),
+                dieselAmount: _parseDouble(x['diesel_amount']),
+                advance: _parseDouble(x['advance']),
+                driverName: x['driver_name']?.toString() ?? '',
+                destinationFrom: x['destination_from']?.toString() ?? '',
+                destinationTo: x['destination_to']?.toString() ?? '',
+                doNumber: x['do_number']?.toString() ?? '',
+                vendor: x['vendor']?.toString() ?? '',
+                truckType: x['truck_type']?.toString() ?? '',
+                transactionStatus: x['transaction_status']?.toString() ?? '',
+                dieselSlipNumber: x['diesel_slip_number']?.toString() ?? '',
+              );
+            }).toList(),
+          );
+        });
+      } else {
+        // Print error response details
+        print('Error response: ${response.body}');
+        throw Exception('Server returned ${response.statusCode}: ${response.body}');
+      }
+    } catch (e, stackTrace) {
+      // Print detailed error information
+      print('Error in _searchBills: $e');
+      print('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading bills: ${e.toString()}'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+// Update the _parseDouble helper method to be more robust
+  double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    if (value is String) {
+      try {
+        return double.parse(value);
+      } catch (e) {
+        return 0.0;
+      }
+    }
+    try {
+      return double.parse(value.toString());
+    } catch (e) {
+      return 0.0;
+    }
+  }
+  Future<void> _generateBill() async {
+    if (selectedBills.isEmpty) {
+      if (mounted) {  // Add mounted check
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select at least one bill')),
+        );
+      }
+      return;
+    }
+
+    try {
+      final selectedBillsData = bills
+          .where((bill) => selectedBills.contains(bill.truckNumber))
+          .map((bill) => {
+        'id': bill.id ?? '',  // Add null check
+        'transaction_status': bill.transactionStatus ?? 'Open'  // Add null check with default
+      })
+          .toList();
+
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:5000/logistics/generate-pdf-bill'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(selectedBillsData),
+      );
+
+      if (!mounted) return;  // Add mounted check before showing SnackBar
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bill generated successfully')),
+        );
+        await _searchBills(); // Refresh the list
+      } else {
+        throw Exception('Failed to generate bill');
+      }
+    } catch (e) {
+      if (mounted) {  // Add mounted check
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating bill: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required Function(DateTime?) onChanged,
+  }) {
+    return TextFormField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+      ),
+      readOnly: true,
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+        );
+        if (date != null) {
+          onChanged(date);
+        }
+      },
+      controller: TextEditingController(
+        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
+      ),
+    );
+  }
+
+  Widget _buildVendorAutocomplete() {
+    return Autocomplete<String>(
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (textEditingValue.text.isEmpty) {
+          return vendors;
+        }
+        return vendors.where((vendor) =>
+            vendor.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+      },
+      onSelected: (String value) {
+        setState(() {
+          selectedVendor = value;
+          _vendorController.text = value;
+        });
+      },
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            labelText: 'Vendor',
+            border: OutlineInputBorder(),
+            hintText: 'Select vendor',
+          ),
+          onChanged: (value) {
+            setState(() {
+              selectedVendor = value;
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTruckAutocomplete() {
+    return Autocomplete<String>(
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (textEditingValue.text.isEmpty) {
+          return trucks;
+        }
+        return trucks.where((truck) =>
+            truck.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+      },
+      onSelected: (String value) {
+        setState(() {
+          selectedTruck = value;
+          _truckController.text = value;
+        });
+      },
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            labelText: 'Truck Number',
+            border: OutlineInputBorder(),
+            hintText: 'Select or type truck number',
+          ),
+          validator: (value) {
+            if (value != null && value.isNotEmpty && !trucks.contains(value)) {
+              return 'Please select a valid truck number';
+            }
+            return null;
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildResultsList() {
+    if (isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+    if (bills.isEmpty) {
+      return Center(child: Text('No bills found'));
+    }
+
+    return Column(
+      children: [
+        ListView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          itemCount: bills.length,
+          itemBuilder: (context, index) {
+            final bill = bills[index];
+            return Card(
+              margin: EdgeInsets.only(bottom: 16),
+              child: CheckboxListTile(
+                value: selectedBills.contains(bill.truckNumber),
+                onChanged: (bool? value) {
+                  setState(() {
+                    if (value == true) {
+                      selectedBills.add(bill.truckNumber ?? ''); // Add null check
+                    } else {
+                      selectedBills.remove(bill.truckNumber ?? ''); // Add null check
+                    }
+                  });
+                },
+                title: Text('DO Number: ${bill.doNumber ?? 'N/A'}'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Truck: ${bill.truckNumber ?? 'N/A'}'),
+                    Text('Driver: ${bill.driverName ?? 'N/A'}'),
+                    Text('From: ${bill.destinationFrom ?? 'N/A'} To: ${bill.destinationTo ?? 'N/A'}'),
+                    Text('Weight: ${(bill.weight ?? 0.0).toStringAsFixed(2)} tons'),
+                    if ((bill.actualWeight ?? 0.0) > 0)
+                      Text('Actual Weight: ${(bill.actualWeight ?? 0.0).toStringAsFixed(2)} tons'),
+                    if ((bill.differenceInWeight ?? 0.0) != 0)
+                      Text('Difference: ${(bill.differenceInWeight ?? 0.0).toStringAsFixed(2)} tons'),
+                    Text('Freight: ₹${(bill.freight ?? 0.0).toStringAsFixed(2)}'),
+                    Text('Diesel: ${(bill.diesel ?? 0.0).toStringAsFixed(2)}L (₹${(bill.dieselAmount ?? 0.0).toStringAsFixed(2)})'),
+                    if ((bill.advance ?? 0.0) > 0)
+                      Text('Advance: ₹${(bill.advance ?? 0.0).toStringAsFixed(2)}'),
+                    Text('Status: ${bill.transactionStatus ?? 'N/A'}'),
+                  ],
+                ),
+                isThreeLine: true,
+              ),
+            );
+          },
+        ),
+        if (bills.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: ElevatedButton(
+              onPressed: _generateBill,
+              child: Text('Generate Bill'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Generate Bill'),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSearchForm(),
+            SizedBox(height: 24),
+            _buildResultsList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildDateField(
+                  label: 'Start Date',
+                  value: startDate,
+                  onChanged: (date) => setState(() => startDate = date),
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: _buildDateField(
+                  label: 'End Date',
+                  value: endDate,
+                  onChanged: (date) => setState(() => endDate = date),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          _buildVendorAutocomplete(),
+          SizedBox(height: 16),
+          _buildTruckAutocomplete(),
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _searchBills,
+            child: Text('Search'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: Size(double.infinity, 50),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _vendorController.dispose();
+    _truckController.dispose();
+    super.dispose();
+  }
+}
