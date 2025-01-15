@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../config/model/vendor_model.dart';
 import '../../config/services/vendor_service.dart';
 
@@ -11,16 +12,18 @@ class _VendorScreenState extends State<VendorScreen> {
   final VendorService _vendorService = VendorService();
   final _formKey = GlobalKey<FormState>();
 
-  List<VendorModel> vendorList = [];
-  bool isLoading = false;
-  String? error;
-  String? submitMessage;
-
+  // Controllers
   final TextEditingController _companyNameController = TextEditingController();
   final TextEditingController _companyOwnerController = TextEditingController();
   final TextEditingController _tdsRateController = TextEditingController();
   final TextEditingController _panController = TextEditingController();
   final TextEditingController _gstController = TextEditingController();
+
+  // State variables
+  List<VendorModel> vendorList = [];
+  bool isLoading = false;
+  String? error;
+  String? submitMessage;
 
   @override
   void initState() {
@@ -28,7 +31,20 @@ class _VendorScreenState extends State<VendorScreen> {
     _loadVendorData();
   }
 
+  @override
+  void dispose() {
+    _companyNameController.dispose();
+    _companyOwnerController.dispose();
+    _tdsRateController.dispose();
+    _panController.dispose();
+    _gstController.dispose();
+    super.dispose();
+  }
+
+  // Data loading methods
   Future<void> _loadVendorData() async {
+    if (!mounted) return;
+
     setState(() {
       isLoading = true;
       error = null;
@@ -36,20 +52,15 @@ class _VendorScreenState extends State<VendorScreen> {
 
     try {
       final data = await _vendorService.getVendorList();
-      print('Fetched vendor data: $data');  // Debugging statement
+      if (!mounted) return;
 
-      if (data.isNotEmpty) {
-        setState(() {
-          vendorList = data;
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          vendorList = [];
-          isLoading = false;
-        });
-      }
+      setState(() {
+        vendorList = data;
+        isLoading = false;
+      });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         error = e.toString();
         isLoading = false;
@@ -74,14 +85,16 @@ class _VendorScreenState extends State<VendorScreen> {
         );
 
         await _vendorService.addVendor(vendor);
+        _clearForm();
         await _loadVendorData();
 
-        _clearForm();
+        if (!mounted) return;
         setState(() {
           submitMessage = 'Vendor added successfully';
           isLoading = false;
         });
       } catch (e) {
+        if (!mounted) return;
         setState(() {
           submitMessage = 'Error: ${e.toString()}';
           isLoading = false;
@@ -98,162 +111,142 @@ class _VendorScreenState extends State<VendorScreen> {
     _gstController.clear();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Vendor Management'),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+  // UI Building methods
+  Widget _buildVendorList() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (error != null) {
+      return Text('Error: $error', style: const TextStyle(color: Colors.red));
+    }
+
+    if (vendorList.isEmpty) {
+      return const Center(child: Text('No vendors found'));
+    }
+
+    return ListView.builder(
+      itemCount: vendorList.length,
+      itemBuilder: (context, index) {
+        final vendor = vendorList[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ListTile(
+            title: Text(
+              vendor.companyName,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Owner: ${vendor.companyOwner}'),
+                Text('TDS Rate: ${vendor.tdsRate}%'),
+                Text('PAN: ${vendor.pan}'),
+                Text('GST: ${vendor.gst}'),
+              ],
+            ),
+            isThreeLine: true,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  // Form Fields
-                  TextFormField(
-                    controller: _companyNameController,
-                    decoration: InputDecoration(
-                      labelText: 'Vendor Name',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value?.isEmpty ?? true) {
-                        return 'Please enter vendor name';
-                      }
-                      return null;
-                    },
+            TextFormField(
+              controller: _companyNameController,
+              decoration: const InputDecoration(
+                labelText: 'Vendor Name',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) =>
+              value?.isEmpty ?? true ? 'Please enter vendor name' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _companyOwnerController,
+              decoration: const InputDecoration(
+                labelText: 'Vendor Owner',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) =>
+              value?.isEmpty ?? true ? 'Please enter vendor owner' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _tdsRateController,
+              decoration: const InputDecoration(
+                labelText: 'TDS Rate (%)',
+                border: OutlineInputBorder(),
+                prefixText: '₹ ',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              validator: (value) {
+                if (value?.isEmpty ?? true) return 'Please enter TDS rate';
+                if (double.tryParse(value!) == null) {
+                  return 'Please enter a valid number';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _panController,
+              decoration: const InputDecoration(
+                labelText: 'PAN',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.characters,
+              validator: (value) =>
+              value?.isEmpty ?? true ? 'Please enter PAN' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _gstController,
+              decoration: const InputDecoration(
+                labelText: 'GST',
+                border: OutlineInputBorder(),
+              ),
+              textCapitalization: TextCapitalization.characters,
+              validator: (value) =>
+              value?.isEmpty ?? true ? 'Please enter GST' : null,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: isLoading ? null : _submitForm,
+                child: isLoading
+                    ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
-                  SizedBox(height: 16),
-                  TextFormField(
-                    controller: _companyOwnerController,
-                    decoration: InputDecoration(
-                      labelText: 'Vendor Owner',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value?.isEmpty ?? true) {
-                        return 'Please enter vendor owner';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 16),
-                  TextFormField(
-                    controller: _tdsRateController,
-                    decoration: InputDecoration(
-                      labelText: 'TDS Rate (%)',
-                      border: OutlineInputBorder(),
-                      prefixText: '₹ ',
-                    ),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      if (value?.isEmpty ?? true) {
-                        return 'Please enter TDS rate';
-                      }
-                      if (double.tryParse(value!) == null) {
-                        return 'Please enter a valid number';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 16),
-                  TextFormField(
-                    controller: _panController,
-                    decoration: InputDecoration(
-                      labelText: 'PAN',
-                      border: OutlineInputBorder(),
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                    validator: (value) {
-                      if (value?.isEmpty ?? true) {
-                        return 'Please enter PAN';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 16),
-                  TextFormField(
-                    controller: _gstController,
-                    decoration: InputDecoration(
-                      labelText: 'GST',
-                      border: OutlineInputBorder(),
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                    validator: (value) {
-                      if (value?.isEmpty ?? true) {
-                        return 'Please enter GST';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _submitForm,
-                    child: Text('Submit'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size(double.infinity, 50),
-                    ),
-                  ),
-                  if (submitMessage != null)
-                    Padding(
-                      padding: EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        submitMessage!,
-                        style: TextStyle(
-                          color: submitMessage!.startsWith('Error')
-                              ? Colors.red
-                              : Colors.green,
-                        ),
-                      ),
-                    ),
-                ],
+                )
+                    : const Text('Submit'),
               ),
             ),
-            SizedBox(height: 24),
-            Text(
-              'Vendor List',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            SizedBox(height: 16),
-            if (isLoading)
-              Center(child: CircularProgressIndicator())
-            else if (error != null)
-              Text('Error: $error', style: TextStyle(color: Colors.red))
-            else if (vendorList.isEmpty)
-                Text('No vendor data available')
-              else
-              // Wrap ListView.builder with Expanded widget
-                Expanded(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: vendorList.length,
-                    itemBuilder: (context, index) {
-                      final vendor = vendorList[index];
-                      return Card(
-                        margin: EdgeInsets.only(bottom: 16),
-                        elevation: 4,
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(vendor.companyName),
-                              Text(vendor.companyOwner),
-                              Text('₹ ${vendor.tdsRate.toStringAsFixed(2)}%'),
-                              Text('PAN: ${vendor.pan}'),
-                              Text('GST: ${vendor.gst}'),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+            if (submitMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  submitMessage!,
+                  style: TextStyle(
+                    color: submitMessage!.startsWith('Error')
+                        ? Colors.red
+                        : Colors.green,
                   ),
                 ),
+              ),
           ],
         ),
       ),
@@ -261,12 +254,28 @@ class _VendorScreenState extends State<VendorScreen> {
   }
 
   @override
-  void dispose() {
-    _companyNameController.dispose();
-    _companyOwnerController.dispose();
-    _tdsRateController.dispose();
-    _panController.dispose();
-    _gstController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Vendor Management'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadVendorData,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildForm(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadVendorData,
+              child: _buildVendorList(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -10,41 +10,43 @@ class VendorService {
     try {
       final response = await http.get(Uri.parse('$baseUrl/list-vendor'));
       print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');  // Log the response body to see its structure
+      print('Raw response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        // Assuming the response body is wrapped in an object, e.g., { "vendors": [...] }
-        final Map<String, dynamic> data = json.decode(response.body);
-        if (data.containsKey('vendors')) {
-          List<dynamic> vendorData = data['vendors'];
-          return vendorData.map((json) => VendorModel.fromJson(json)).toList();
-        } else {
-          throw Exception('No vendor data found');
-        }
+        // Parse the response body
+        Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+        // Extract the resultData array
+        List<dynamic> resultData = jsonResponse['resultData'] ?? [];
+        print('Found ${resultData.length} vendors in resultData');
+
+        // Convert each item in resultData to a VendorModel
+        List<VendorModel> vendors = resultData.map((item) =>
+            VendorModel(
+                companyName: item['companyName']?.toString() ?? '',
+                companyOwner: item['companyOwner']?.toString() ?? '',
+                tdsRate: (item['tdsRate'] is num)
+                    ? (item['tdsRate'] as num).toDouble()
+                    : double.tryParse(item['tdsRate']?.toString() ?? '0') ?? 0.0,
+                pan: item['pan']?.toString() ?? '',
+                gst: item['gst']?.toString() ?? ''
+            )
+        ).toList();
+
+        print('Successfully converted ${vendors.length} vendors');
+        return vendors;
       } else {
-        throw Exception('Failed to load vendor data');
+        throw Exception('Failed to load vendors: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error: $e');
+      print('Error in getVendorList: $e');
+      throw Exception('Failed to load vendors: $e');
     }
   }
 
-
-
-  // In vendor_service.dart, modify the addVendor method:
-  // In vendor_service.dart, enhance the addVendor method with more logging:
   Future<void> addVendor(VendorModel vendor) async {
     try {
-      final requestBody = json.encode({
-        'companyName': vendor.companyName,
-        'companyOwner': vendor.companyOwner,
-        'tdsRate': vendor.tdsRate,
-        'pan': vendor.pan,
-        'gst': vendor.gst,
-      });
-
-      print('Request URL: $baseUrl/add-vendor');
-      print('Request Body: $requestBody');
+      final requestBody = json.encode(vendor.toJson());
 
       final response = await http.post(
         Uri.parse('$baseUrl/add-vendor'),
@@ -52,19 +54,11 @@ class VendorService {
         body: requestBody,
       );
 
-      print('Response Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
       if (response.statusCode != 200) {
-        throw Exception('Failed to add vendor: ${response.body}');
+        throw Exception('Failed to add vendor: ${response.statusCode}');
       }
-
-      // Try to parse the response to ensure it's valid
-      final responseData = json.decode(response.body);
-      print('Parsed Response: $responseData');
     } catch (e) {
-      print('Exception in addVendor: $e');
-      throw Exception('Error: $e');
+      throw Exception('Error adding vendor: $e');
     }
   }
 }

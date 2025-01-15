@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/model/vehicle_model.dart';
-
+import 'package:file_picker/file_picker.dart';
 import '../../config/services/vehicle_service.dart';
 
 
@@ -357,7 +357,24 @@ class DocumentField extends StatelessWidget {
   }) : super(key: key);
 
   Future<void> _pickFile() async {
-    // TODO: Implement file picking using file_picker package
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      );
+
+      if (result != null) {
+        PlatformFile file = result.files.first;
+        // Update the document data with the new file path
+        onChanged(
+          data['startDate'],
+          data['endDate'],
+          file.path ?? '',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error picking file: $e');
+    }
   }
 
   @override
@@ -377,6 +394,7 @@ class DocumentField extends StatelessWidget {
               ),
               onTap: () => _selectDate(context, true),
               readOnly: true,
+              controller: TextEditingController(text: data['startDate']),
               validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
             ),
             const SizedBox(height: 16),
@@ -387,14 +405,34 @@ class DocumentField extends StatelessWidget {
               ),
               onTap: () => _selectDate(context, false),
               readOnly: true,
+              controller: TextEditingController(text: data['endDate']),
               validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _pickFile,
-              icon: const Icon(Icons.attach_file),
-              label: const Text('Upload Document'),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _pickFile,
+                    icon: const Icon(Icons.attach_file),
+                    label: const Text('Upload Document'),
+                  ),
+                ),
+                if (data['filePath']?.isNotEmpty ?? false) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.check_circle, color: Colors.green[600]),
+                ],
+              ],
             ),
+            if (data['filePath']?.isNotEmpty ?? false)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'File selected: ${data['filePath'].split('/').last}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
           ],
         ),
       ),
@@ -407,7 +445,7 @@ class DocumentField extends StatelessWidget {
       initialDate: DateTime.now(),
       firstDate: isStartDate
           ? DateTime.now().subtract(const Duration(days: 365))
-          : DateTime.now(),
+          : DateTime.parse(data['startDate'] != '' ? data['startDate'] : DateTime.now().toIso8601String()),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (date != null) {

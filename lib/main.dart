@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
           case '/signup':
             return _buildPageRoute(SignUpScreen());
           case '/home':
-            return _buildPageRoute(const TruckDetailsScreen());
+            return _buildPageRoute(TruckDetailsScreen());
           case '/reset-password':
             return _buildPageRoute(const ResetPasswordScreen());
           case '/freight':
@@ -85,7 +85,7 @@ class MyApp extends StatelessWidget {
           }
 
           if (snapshot.hasData && snapshot.data!) {
-            return const TruckDetailsScreen();
+            return  TruckDetailsScreen();
           } else {
             return LoginScreen();
           }

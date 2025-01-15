@@ -1,13 +1,13 @@
 // lib/config/model/freight_model.dart
 
 class Freight {
-  final String id;
+   String? id;
   final String from;
   final String to;
   final double rate;
 
   Freight({
-    required this.id,
+     this.id,
     required this.from,
     required this.to,
     required this.rate,
