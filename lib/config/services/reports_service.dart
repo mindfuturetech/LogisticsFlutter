@@ -21,7 +21,7 @@ class ReportsService {
   // Platform-specific base URL helper
   static String getPlatformSpecificBaseUrl() {
     if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5000/logistics'; // Android emulator localhost
+      return 'http://192.168.130.219:5000/logistics'; // Android emulator localhost
     } else if (Platform.isIOS) {
       return 'http://localhost:5000/logistics'; // iOS simulator localhost
     }

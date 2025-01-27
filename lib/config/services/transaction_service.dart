@@ -8,9 +8,9 @@ import '../model/truck_details_model.dart';
 class TripDetailsService {
   static String get baseUrl {
     if (Platform.isAndroid && !kIsWeb) {
-      return 'http://10.0.2.2:5000';
+      return 'http://192.168.130.219:5000';
     } else if (Platform.isAndroid) {
-      return 'http://192.168.120.135:5000';
+      return 'http://192.168.130.219:5000';
     }
     return 'http://localhost:5000';
   }
@@ -65,25 +65,43 @@ class TripDetailsService {
 
   // Updated to match the exact field names from your TripDetails model
   Map<String, dynamic> _transformResponse(Map<String, dynamic> json) {
+    double _safeParseDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        try {
+          return double.parse(value);
+        } catch (e) {
+          print('Failed to parse double from: $value. Error: $e');
+          return 0.0;
+        }
+      }
+      return 0.0;
+    }
+
     return {
-      'TruckNumber': json['truck_no'],
-      'Vendor': json['vendor'],
-      'DestinationTo': json['destination_to'],
-      'Weight': json['weight']?.toDouble(),
-      'ActualWeight': json['actual_weight']?.toDouble(),
-      'Freight': json['freight']?.toDouble(),
-      'DieselAmount': json['diesel']?.toDouble(),
-      'Advance': json['advance']?.toDouble(),
-      'Toll': json['toll']?.toDouble(),
-      'TDS_Rate': json['tds']?.toDouble(),
-      'DifferenceInWeight': json['short']?.toDouble(),
-      'TransactionStatus': json['transaction_status'],
-      'createdAt': json['date'] ?? json['time'],  // Using either date or time field
-      'updatedAt': json['date'] ?? json['time'],  // Using the same for updatedAt
+      'tripId': _safeParseDouble(json['tripId']),
+      'userName': json['userName']?.toString(),
+      'TruckNumber': json['truck_no']?.toString(),
+      'profile': json['truck_no']?.toString(),
+      'Vendor': json['vendor']?.toString(),
+      'DestinationTo': json['destination_to']?.toString(),
+      'Weight': _safeParseDouble(json['weight']),
+      'ActualWeight': _safeParseDouble(json['actual_weight']),
+      'Freight': _safeParseDouble(json['freight']),
+      'DieselAmount': _safeParseDouble(json['diesel']),
+      'Advance': _safeParseDouble(json['advance']),
+      'Toll': _safeParseDouble(json['toll']),
+      'TDS_Rate': _safeParseDouble(json['tds']),
+      'DifferenceInWeight': _safeParseDouble(json['short']),
+      'TransactionStatus': json['transaction_status']?.toString(),
+      'createdAt': json['date'] ?? json['time'],
+      'updatedAt': json['date'] ?? json['time'], // Using the same for updatedAt
       // Additional fields from your Node.js response
-      'rate': json['rate']?.toDouble(),
-      'other_charges': json['other_charges']?.toDouble(),
-      'amount': json['amount']?.toDouble(),
+      'rate': _safeParseDouble(json['rate']),
+      'other_charges': _safeParseDouble(json['other_charges']),
+      'amount': _safeParseDouble(json['amount']),
       // Add any other fields that your backend provides
     };
   }

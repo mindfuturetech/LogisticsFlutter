@@ -46,6 +46,7 @@ dependencies:
   excel: ^2.1.0
   path_provider: ^2.1.1
   permission_handler: ^10.4.3
+  open_file: ^3.3.2
 
 
   # The following adds the Cupertino Icons font to your application.

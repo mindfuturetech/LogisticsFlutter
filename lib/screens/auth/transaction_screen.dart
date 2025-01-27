@@ -97,12 +97,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
 
   double calculateAmount(TripDetails trip) {
+    double _parseDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
     double amount = 0;
-    amount += trip.freight ?? 0;
-    amount -= trip.advance ?? 0;
-    amount -= trip.diesel ?? 0;
-    amount -= trip.toll ?? 0;
-    // Add any other calculations as needed
+    amount += _parseDouble(trip.freight);
+    amount -= _parseDouble(trip.advance);
+    amount -= _parseDouble(trip.diesel);
+    amount -= _parseDouble(trip.toll);
     return amount;
   }
   void handleSearch() {
@@ -293,6 +300,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             Expanded(child: _buildInfoRow('TDS', '${trip.tdsRate ?? '-'}%')),
                           ],
                         ),
+                        _buildInfoRow('Trip ID', '${trip.tripId ?? '-'}'),
+                        _buildInfoRow('Username', trip.userName ?? '-'),
+                        _buildInfoRow('Profile', trip.profile ?? '-'),
                         _buildInfoRow('Short Weight', '${trip.differenceInWeight ?? '-'}'),
                         _buildInfoRow('Transaction Status', trip.transactionStatus ?? '-'),
                       ],

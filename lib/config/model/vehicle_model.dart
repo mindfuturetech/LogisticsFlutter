@@ -1,3 +1,4 @@
+// vehicle_model.dart
 class Vehicle {
   final String truckNo;
   final String make;
@@ -22,9 +23,9 @@ class Vehicle {
     }
 
     return Vehicle(
-      truckNo: json['truckNo'],
-      make: json['make'],
-      companyOwner: json['companyOwner'],
+      truckNo: json['truck_no'] ?? '', // Changed from truckNo to truck_no
+      make: json['make'] ?? '',
+      companyOwner: json['companyOwner'] ?? '',
       documents: docs,
     );
   }
@@ -45,10 +46,10 @@ class Document {
 
   factory Document.fromJson(Map<String, dynamic> json) {
     return Document(
-      filePath: json['file_path'],
-      startDate: json['start_date'],
-      endDate: json['end_date'],
-      daysLeft: json['days_left'],
+      filePath: json['file_path'], // Changed from filePath to file_path
+      startDate: json['start_date'], // Changed from startDate to start_date
+      endDate: json['end_date'], // Changed from endDate to end_date
+      daysLeft: json['days_left'], // Changed from daysLeft to days_left
     );
   }
 }

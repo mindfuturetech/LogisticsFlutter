@@ -1,4 +1,7 @@
 class TripDetails {
+   int? tripId;
+   String? userName;
+   String? profile;
    String? truckNumber;
    String? doNumber;
    String? driverName;
@@ -29,6 +32,9 @@ class TripDetails {
    DateTime? updatedAt;
 
   TripDetails({
+    this.tripId,
+    this.userName,
+    this.profile,
     this.truckNumber,
     this.doNumber,
     this.driverName,
@@ -61,6 +67,9 @@ class TripDetails {
 
   factory TripDetails.fromJson(Map<String, dynamic> json) {
     return TripDetails(
+      tripId: json['TripId'] as int?,
+      userName: json['Username']?.toString(),
+      profile: json['Profile']?.toString(),
       truckNumber: json['TruckNumber']?.toString(),
       doNumber: json['DONumber']?.toString(),
       driverName: json['DriverName']?.toString(),
@@ -102,6 +111,9 @@ class TripDetails {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
+    if (tripId != null) data['TripId'] = tripId;
+    if (userName != null) data['Username'] = userName;
+    if (profile != null) data['Profile'] = profile;
     if (truckNumber != null) data['TruckNumber'] = truckNumber;
     if (doNumber != null) data['DONumber'] = doNumber;
     if (driverName != null) data['DriverName'] = driverName;

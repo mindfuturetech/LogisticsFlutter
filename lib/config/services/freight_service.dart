@@ -5,7 +5,7 @@ import '../model/freight_model.dart';
 
 
 class FreightService {
-  static const String baseUrl = 'http://10.0.2.2:5000/logistics';
+  static const String baseUrl = 'http://192.168.130.219:5000/logistics';
 
   static Future<List<Freight>> getFreightData() async {
     final response = await http.get(Uri.parse(baseUrl));

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../../config/model/truck_details_model.dart';
 
 class BillService {
-  static const String baseUrl = 'http://10.0.2.2:5000/logistics';
+  static const String baseUrl = 'http://192.168.130.219:5000/logistics';
 
   Future<List<TripDetails>> getBillList({
     DateTime? startDate,

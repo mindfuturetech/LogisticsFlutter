@@ -21,6 +21,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   Set<String> selectedBills = {};
   List<String> vendors = [];
   List<String> trucks = [];
+  int? currentBillId;
 
   final TextEditingController _vendorController = TextEditingController();
   final TextEditingController _truckController = TextEditingController();
@@ -30,12 +31,29 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
     super.initState();
     _loadVendors();
     _loadTrucks();
+    _fetchCurrentBillId();
   }
 
+  Future<void> _fetchCurrentBillId() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.130.219:5000/logistics/current-bill-id'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          currentBillId = (data['currentBillId'] as int?) ?? 1;
+        });
+      }
+    } catch (e) {
+      print('Error fetching current bill ID: $e');
+    }
+  }
   Future<void> _loadVendors() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:5000/logistics/list-vendor'),
+        Uri.parse('http://192.168.130.219:5000/logistics/list-vendor'),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -56,7 +74,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   Future<void> _loadTrucks() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:5000/logistics/list-vehicle'),
+        Uri.parse('http://192.168.130.219:5000/logistics/list-vehicle'),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -114,7 +132,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
       print('Request body: ${json.encode(requestBody)}');
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/logistics/list-billing'),
+        Uri.parse('http://192.168.130.219:5000/logistics/list-billing'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(requestBody),
       );
@@ -223,24 +241,31 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
       return;
     }
 
+
     try {
       final selectedBillsData = bills
           .where((bill) => selectedBills.contains(bill.truckNumber))
           .map((bill) => {
-        'id': bill.id ?? '',  // Add null check
-        'transaction_status': bill.transactionStatus ?? 'Open'  // Add null check with default
+        'id': bill.id ?? '',
+        'transaction_status': bill.transactionStatus ?? 'Open',
+        'bill_id': currentBillId, // Include the current bill ID
       })
           .toList();
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/logistics/generate-pdf-bill'),
+        Uri.parse('http://192.168.130.219:5000/logistics/generate-pdf-bill'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(selectedBillsData),
       );
 
-      if (!mounted) return;  // Add mounted check before showing SnackBar
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
+        // Increment the bill ID after successful generation
+        setState(() {
+          currentBillId = (currentBillId ?? 0) + 1;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Bill generated successfully')),
         );
@@ -249,7 +274,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
         throw Exception('Failed to generate bill');
       }
     } catch (e) {
-      if (mounted) {  // Add mounted check
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error generating bill: ${e.toString()}')),
         );
@@ -364,6 +389,35 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
 
     return Column(
       children: [
+        // Display current bill ID
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Current Bill ID:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '#${DateTime.now().year}-${(bills.length + 1).toString().padLeft(4, '0')}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
         ListView.builder(
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
@@ -377,29 +431,132 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
                 onChanged: (bool? value) {
                   setState(() {
                     if (value == true) {
-                      selectedBills.add(bill.truckNumber ?? ''); // Add null check
+                      selectedBills.add(bill.truckNumber ?? '');
                     } else {
-                      selectedBills.remove(bill.truckNumber ?? ''); // Add null check
+                      selectedBills.remove(bill.truckNumber ?? '');
                     }
                   });
                 },
-                title: Text('DO Number: ${bill.doNumber ?? 'N/A'}'),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text('DO Number: ${bill.doNumber ?? 'N/A'}'),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${bill.transactionStatus ?? 'N/A'}',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Truck: ${bill.truckNumber ?? 'N/A'}'),
-                    Text('Driver: ${bill.driverName ?? 'N/A'}'),
-                    Text('From: ${bill.destinationFrom ?? 'N/A'} To: ${bill.destinationTo ?? 'N/A'}'),
-                    Text('Weight: ${(bill.weight ?? 0.0).toStringAsFixed(2)} tons'),
-                    if ((bill.actualWeight ?? 0.0) > 0)
-                      Text('Actual Weight: ${(bill.actualWeight ?? 0.0).toStringAsFixed(2)} tons'),
-                    if ((bill.differenceInWeight ?? 0.0) != 0)
-                      Text('Difference: ${(bill.differenceInWeight ?? 0.0).toStringAsFixed(2)} tons'),
-                    Text('Freight: ₹${(bill.freight ?? 0.0).toStringAsFixed(2)}'),
-                    Text('Diesel: ${(bill.diesel ?? 0.0).toStringAsFixed(2)}L (₹${(bill.dieselAmount ?? 0.0).toStringAsFixed(2)})'),
-                    if ((bill.advance ?? 0.0) > 0)
-                      Text('Advance: ₹${(bill.advance ?? 0.0).toStringAsFixed(2)}'),
-                    Text('Status: ${bill.transactionStatus ?? 'N/A'}'),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Truck: ${bill.truckNumber ?? 'N/A'}',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Text(
+                          'Driver: ${bill.driverName ?? 'N/A'}',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'From: ${bill.destinationFrom ?? 'N/A'} → To: ${bill.destinationTo ?? 'N/A'}',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Card(
+                            color: Colors.grey[100],
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Weight Details',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Weight: ${(bill.weight ?? 0.0).toStringAsFixed(2)} tons',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                  if ((bill.actualWeight ?? 0.0) > 0)
+                                    Text(
+                                      'Actual: ${(bill.actualWeight ?? 0.0).toStringAsFixed(2)} tons',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  if ((bill.differenceInWeight ?? 0.0) != 0)
+                                    Text(
+                                      'Diff: ${(bill.differenceInWeight ?? 0.0).toStringAsFixed(2)} tons',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Card(
+                            color: Colors.grey[100],
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Payment Details',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Freight: ₹${(bill.freight ?? 0.0).toStringAsFixed(2)}',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                  Text(
+                                    'Diesel: ${(bill.diesel ?? 0.0).toStringAsFixed(2)}L (₹${(bill.dieselAmount ?? 0.0).toStringAsFixed(2)})',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                  if ((bill.advance ?? 0.0) > 0)
+                                    Text(
+                                      'Advance: ₹${(bill.advance ?? 0.0).toStringAsFixed(2)}',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 isThreeLine: true,
@@ -410,12 +567,47 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
         if (bills.isNotEmpty)
           Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: ElevatedButton(
-              onPressed: _generateBill,
-              child: Text('Generate Bill'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50),
-              ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Selected: ${selectedBills.length}/${bills.length}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          if (selectedBills.length == bills.length) {
+                            selectedBills.clear();
+                          } else {
+                            selectedBills = bills
+                                .map((bill) => bill.truckNumber ?? '')
+                                .toSet();
+                          }
+                        });
+                      },
+                      child: Text(
+                        selectedBills.length == bills.length
+                            ? 'Deselect All'
+                            : 'Select All',
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: selectedBills.isNotEmpty ? _generateBill : null,
+                  child: Text('Generate Bill'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 50),
+                  ),
+                ),
+              ],
             ),
           ),
       ],

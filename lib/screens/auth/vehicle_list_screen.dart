@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../config/model/vehicle_model.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../config/services/api_service.dart';
 import '../../config/services/vehicle_service.dart';
+import 'package:http/http.dart' as http;
 
 
 class VehicleScreen extends StatefulWidget {
@@ -13,7 +15,7 @@ class VehicleScreen extends StatefulWidget {
 
 class _VehicleScreenState extends State<VehicleScreen> {
   final _formKey = GlobalKey<FormState>();
-  final ApiService _apiService = ApiService();
+  final VehicleService _vehicleService = VehicleService();
   final TextEditingController _truckNoController = TextEditingController();
   final TextEditingController _makeController = TextEditingController();
   final TextEditingController _companyOwnerController = TextEditingController();
@@ -50,12 +52,16 @@ class _VehicleScreenState extends State<VehicleScreen> {
 
   Future<void> _loadVehicles() async {
     try {
-      final data = await _apiService.getVehicles();
+      final response = await http.get(Uri.parse('${ApiService.baseUrl}/list-vehicle'));
+      print('Raw API Response: ${response.body}');  // Add this line
+
+      final data = await _vehicleService.getVehicles();
       setState(() {
         vehicles = data;
         isLoading = false;
       });
     } catch (e) {
+      print('Error details: $e');  // Add this line
       setState(() => isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,7 +82,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
           }
         });
 
-        await _apiService.addVehicle(
+        await _vehicleService.addVehicle(
           _truckNoController.text,
           _makeController.text,
           _companyOwnerController.text,
@@ -117,6 +123,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugShowCheckedModeBanner: false;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vehicle Management'),
@@ -236,7 +243,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
             itemBuilder: (context, index) {
               return VehicleCard(
                 vehicle: vehicles[index],
-                apiService: _apiService,
+                vehicleService: _vehicleService,
                 displayNames: displayNames,
               );
             },
@@ -248,13 +255,13 @@ class _VehicleScreenState extends State<VehicleScreen> {
 
 class VehicleCard extends StatelessWidget {
   final Vehicle vehicle;
-  final ApiService apiService;
+  final VehicleService vehicleService;
   final Map<String, String> displayNames;
 
   const VehicleCard({
     Key? key,
     required this.vehicle,
-    required this.apiService,
+    required this.vehicleService,
     required this.displayNames,
   }) : super(key: key);
 
@@ -269,7 +276,7 @@ class VehicleCard extends StatelessWidget {
           children: [
             _buildVehicleDetails(),
             const Divider(height: 32),
-            _buildDocuments(),
+
           ],
         ),
       ),
@@ -287,12 +294,14 @@ class VehicleCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDocuments() {
+  Widget _buildDocuments(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: vehicle.documents.entries.map((entry) {
         if (entry.value != null) {
           final bool isExpiring = (entry.value.daysLeft ?? 0) <= 5;
+          final bool isExpired = (entry.value.daysLeft ?? 0) <= 0;
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Column(
@@ -315,6 +324,33 @@ class VehicleCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    // Upload or Download button based on document status
+                    ElevatedButton(
+                      onPressed: () {
+                        if (isExpired || isExpiring) {
+                          // Trigger upload for expired or expiring documents
+                          _uploadDocument(context, entry.key);
+                        } else {
+                          // Trigger download for valid documents
+                          _downloadDocument(entry.key);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isExpired || isExpiring
+                            ? Colors.red
+                            : Colors.green,
+                      ),
+                      child: Text(
+                        isExpired || isExpiring
+                            ? 'Upload'
+                            : 'Download',
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           );
@@ -324,6 +360,19 @@ class VehicleCard extends StatelessWidget {
     );
   }
 
+  void _uploadDocument(BuildContext context, String documentType) {
+    // Implement document upload logic
+    // This could open a file picker or navigate to a upload screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Uploading $documentType document')),
+    );
+  }
+
+  void _downloadDocument(String documentType) {
+    // Implement document download logic
+    // This could trigger a download from the server
+    print('Downloading $documentType document');
+  }
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -337,7 +386,7 @@ class VehicleCard extends StatelessWidget {
               color: Colors.grey,
             ),
           ),
-          Text(value),
+          Text(value ?? 'N/A'),
         ],
       ),
     );
@@ -361,11 +410,14 @@ class DocumentField extends StatelessWidget {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        allowMultiple: false,
       );
 
       if (result != null) {
-        PlatformFile file = result.files.first;
-        // Update the document data with the new file path
+        final file = result.files.first;
+        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+          throw Exception('File size exceeds 10MB limit');
+        }
         onChanged(
           data['startDate'],
           data['endDate'],
@@ -373,6 +425,7 @@ class DocumentField extends StatelessWidget {
         );
       }
     } catch (e) {
+      // Show error dialog or snackbar
       debugPrint('Error picking file: $e');
     }
   }
@@ -385,7 +438,10 @@ class DocumentField extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
+            Text(title, style: Theme
+                .of(context)
+                .textTheme
+                .titleSmall),
             const SizedBox(height: 16),
             TextFormField(
               decoration: const InputDecoration(
@@ -428,8 +484,13 @@ class DocumentField extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  'File selected: ${data['filePath'].split('/').last}',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  'File selected: ${data['filePath']
+                      .split('/')
+                      .last}',
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .bodySmall,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -440,20 +501,48 @@ class DocumentField extends StatelessWidget {
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: isStartDate
-          ? DateTime.now().subtract(const Duration(days: 365))
-          : DateTime.parse(data['startDate'] != '' ? data['startDate'] : DateTime.now().toIso8601String()),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (date != null) {
-      onChanged(
-        isStartDate ? date.toIso8601String() : data['startDate'],
-        isStartDate ? data['endDate'] : date.toIso8601String(),
-        data['filePath'],
+    final DateTime now = DateTime.now();
+    final DateTime initialDate = isStartDate ? now :
+    (data['startDate'] != '' ? DateTime.parse(data['startDate']) : now);
+
+    try {
+      final date = await showDatePicker(
+        context: context,
+        initialDate: initialDate,
+        firstDate: now.subtract(const Duration(days: 365)),
+        lastDate: now.add(const Duration(days: 365 * 2)),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme
+                  .of(context)
+                  .colorScheme
+                  .copyWith(
+                primary: Theme
+                    .of(context)
+                    .primaryColor,
+              ),
+            ),
+            child: child!,
+          );
+        },
       );
+
+      if (date != null) {
+        if (!isStartDate && date.isBefore(DateTime.parse(data['startDate']))) {
+          throw Exception('End date cannot be before start date');
+        }
+        onChanged(
+          isStartDate ? date.toIso8601String() : data['startDate'],
+          isStartDate ? data['endDate'] : date.toIso8601String(),
+          data['filePath'],
+        );
+      }
+    } catch (e) {
+      // Show error dialog or snackbar
+      debugPrint('Error selecting date: $e');
     }
   }
 }
+
+
