@@ -4,7 +4,7 @@ import '../model/truck_details_model.dart';
 
 class LogisticsService {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://192.168.130.219:5000/logistics',
+    baseUrl: 'http://10.0.2.2:5000/logistics',
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
   ));

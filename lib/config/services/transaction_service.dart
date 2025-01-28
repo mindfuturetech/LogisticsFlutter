@@ -2,15 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-
 import '../model/truck_details_model.dart';
 
 class TripDetailsService {
   static String get baseUrl {
     if (Platform.isAndroid && !kIsWeb) {
-      return 'http://192.168.130.219:5000';
+      return 'http://10.0.2.2:5000';
     } else if (Platform.isAndroid) {
-      return 'http://192.168.130.219:5000';
+      return 'http://10.0.2.2:5000';
     }
     return 'http://localhost:5000';
   }
@@ -43,7 +42,7 @@ class TripDetailsService {
       );
 
       print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      print('Response body-Fetch: ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -62,7 +61,46 @@ class TripDetailsService {
       throw Exception('Error fetching trip details: $e');
     }
   }
+  Future<bool> updateTransaction(TripDetails trip, String? id) async {
+    try {
+      final url = Uri.parse('$baseUrl/logistics/update-transactions');
+      print('Attempting to update transaction at: $url');
 
+      final payload = {
+        'updateRows': {
+          '_id': trip.id, // This should now be a string
+          'destination_to': trip.destinationTo,
+          'weight': trip.weight,
+          'actual_weight': trip.actualWeight,
+          'freight': trip.freight,
+          'rate': trip.rate,
+          'diesel': trip.dieselAmount,
+          'advance': trip.advance,
+          'toll': trip.toll,
+          'tds': trip.tdsRate,
+          'transaction_status': trip.transactionStatus,
+          'amount': trip.amount,
+          'billing_id': trip.billingId,
+        }
+      };
+
+      print('Update payload: ${jsonEncode(payload)}');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      print('Update response status code: ${response.statusCode}');
+      print('Update response body: ${response.body}');
+
+      return response.statusCode == 201;
+    } catch (e) {
+      print('Error updating transaction: $e');
+      throw Exception('Failed to update transaction: $e');
+    }
+  }
   // Updated to match the exact field names from your TripDetails model
   Map<String, dynamic> _transformResponse(Map<String, dynamic> json) {
     double _safeParseDouble(dynamic value) {
@@ -81,10 +119,11 @@ class TripDetailsService {
     }
 
     return {
-      'tripId': _safeParseDouble(json['tripId']),
-      'userName': json['userName']?.toString(),
+      '_id': json['_id'], // Changed to handle ID as string
+      'TripID': json['trip_id']?.toString(), // Changed to handle ID as string
+      'username': json['username']?.toString(),
       'TruckNumber': json['truck_no']?.toString(),
-      'profile': json['truck_no']?.toString(),
+      'profile': json['profile']?.toString(),
       'Vendor': json['vendor']?.toString(),
       'DestinationTo': json['destination_to']?.toString(),
       'Weight': _safeParseDouble(json['weight']),
@@ -97,14 +136,52 @@ class TripDetailsService {
       'DifferenceInWeight': _safeParseDouble(json['short']),
       'TransactionStatus': json['transaction_status']?.toString(),
       'createdAt': json['date'] ?? json['time'],
-      'updatedAt': json['date'] ?? json['time'], // Using the same for updatedAt
-      // Additional fields from your Node.js response
+      'updatedAt': json['date'] ?? json['time'],
       'rate': _safeParseDouble(json['rate']),
       'other_charges': _safeParseDouble(json['other_charges']),
       'amount': _safeParseDouble(json['amount']),
-      // Add any other fields that your backend provides
+      'BillId': json['billing_id']?.toString(), // Changed to handle ID as string
     };
   }
+
+  // Future<void> generatePDF(List<TripDetails> selectedTrips) async {
+  //   try {
+  //     final url = Uri.parse('$baseUrl/logistics/generate-pdf-transaction');
+  //
+  //     final payload = selectedTrips.map((trip) => {
+  //       'id': trip.id,
+  //       'transaction_status': trip.transactionStatus,
+  //     }).toList();
+  //
+  //     final response = await http.post(
+  //       url,
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode(payload),
+  //     );
+  //
+  //     if (response.statusCode == 200) {
+  //       // Convert response to Uint8List
+  //       final bytes = response.bodyBytes;
+  //
+  //       // Create a blob URL for the PDF
+  //       final blob = html.Blob([bytes], 'application/pdf');
+  //       final url = html.Url.createObjectUrlFromBlob(blob);
+  //
+  //       // Create a link element and trigger download
+  //       final anchor = html.AnchorElement(href: url)
+  //         ..setAttribute('download', 'GeneratedTransactionBill.pdf')
+  //         ..click();
+  //
+  //       // Clean up
+  //       html.Url.revokeObjectUrl(url);
+  //     } else {
+  //       throw Exception('Failed to generate PDF: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     print('Error generating PDF: $e');
+  //     throw Exception('Failed to generate PDF: $e');
+  //   }
+  // }
 
   Future<bool> _checkConnectivity() async {
     try {

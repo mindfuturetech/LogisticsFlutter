@@ -1,6 +1,6 @@
 class TripDetails {
-   int? tripId;
-   String? userName;
+   String? tripId;
+   String? username;
    String? profile;
    String? truckNumber;
    String? doNumber;
@@ -31,9 +31,13 @@ class TripDetails {
    DateTime? createdAt;
    DateTime? updatedAt;
 
+   double? rate;
+   String? billingId;
+   double? amount;
+
   TripDetails({
     this.tripId,
-    this.userName,
+    this.username,
     this.profile,
     this.truckNumber,
     this.doNumber,
@@ -63,13 +67,16 @@ class TripDetails {
     this.id,
     this.createdAt,
     this.updatedAt,
+    this.rate,
+    this.billingId,
+    this.amount,
   });
 
   factory TripDetails.fromJson(Map<String, dynamic> json) {
     return TripDetails(
-      tripId: json['TripId'] as int?,
-      userName: json['Username']?.toString(),
-      profile: json['Profile']?.toString(),
+      tripId: json['TripID']?.toString(),
+      username: json['username']?.toString(),
+      profile: json['profile']?.toString(),
       truckNumber: json['TruckNumber']?.toString(),
       doNumber: json['DONumber']?.toString(),
       driverName: json['DriverName']?.toString(),
@@ -90,7 +97,9 @@ class TripDetails {
       toll: json['Toll']?.toDouble(),
       adblue: json['Adblue']?.toDouble(),
       greasing: json['Greasing']?.toDouble(),
-      billId: json['BillId']?.toString(),
+      rate: json['rate']?.toDouble(),
+      billingId: json['BillId']?.toString(),
+      amount: double.tryParse(json['amount']?.toString() ?? '0'),
       dieselSlipImage: json['DieselSlipImage'] != null
           ? Map<String, String?>.from(json['DieselSlipImage'])
           : null,
@@ -103,7 +112,7 @@ class TripDetails {
       weightmentSlip: json['WeightmentSlip'] != null
           ? Map<String, String?>.from(json['WeightmentSlip'])
           : null,
-      id: json['_id']?.toString(),
+      id: json['_id'],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
     );
@@ -112,7 +121,7 @@ class TripDetails {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
     if (tripId != null) data['TripId'] = tripId;
-    if (userName != null) data['Username'] = userName;
+    if (username != null) data['Username'] = username;
     if (profile != null) data['Profile'] = profile;
     if (truckNumber != null) data['TruckNumber'] = truckNumber;
     if (doNumber != null) data['DONumber'] = doNumber;
@@ -134,11 +143,27 @@ class TripDetails {
     if (toll != null) data['Toll'] = toll;
     if (adblue != null) data['Adblue'] = adblue;
     if (greasing != null) data['Greasing'] = greasing;
-    if (billId != null) data['BillId'] = billId;
+    if (billingId != null) data['BillId'] = billingId;
     if (dieselSlipImage != null) data['DieselSlipImage'] = dieselSlipImage;
     if (loadingAdvice != null) data['LoadingAdvice'] = loadingAdvice;
     if (invoiceCompany != null) data['InvoiceCompany'] = invoiceCompany;
     if (weightmentSlip != null) data['WeightmentSlip'] = weightmentSlip;
+    if (rate != null) data['rate'] = rate;
+    if (amount != null) data['amount'] = amount;
+    if (id != null) data['_id'] = id;
     return data;
   }
+   static double? _parseDouble(dynamic value) {
+     if (value == null) return null;
+     if (value is num) return value.toDouble();
+     if (value is String) return double.tryParse(value);
+     return null;
+   }
+
+   static DateTime? _parseDateTime(dynamic value) {
+     if (value == null) return null;
+     if (value is DateTime) return value;
+     if (value is String) return DateTime.tryParse(value);
+     return null;
+   }
 }

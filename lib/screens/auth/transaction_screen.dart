@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
@@ -15,11 +14,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   DateTime? startDate;
   DateTime? endDate;
   List<TripDetails> tripDetails = [];
+  Set<String> selectedTripIds = Set<String>();  // Properly initialized Set
   bool isLoading = false;
   String errorMessage = '';
   String noDataMessage = '';
 
-  final String baseUrl = 'http://localhost:5000/logistics/list-all-transactions';
+  final String baseUrl = 'http://10.0.2.2:5000/logistics/list-all-transactions';
+  final String updateUrl = 'http://10.0.2.2:5000/logistics/update-transactions';
 
   @override
   void initState() {
@@ -33,12 +34,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       errorMessage = '';
       noDataMessage = '';
       tripDetails = [];
+      selectedTripIds.clear();  // Clear selections when fetching new data
     });
 
     try {
       final service = TripDetailsService();
-
-      // Format dates as YYYY-MM-DD for the API
       final formattedStartDate = startDate != null
           ? DateFormat('yyyy-MM-dd').format(startDate!)
           : null;
@@ -46,9 +46,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ? DateFormat('yyyy-MM-dd').format(endDate!)
           : null;
 
-      print('Fetching transactions with dates: $formattedStartDate to $formattedEndDate');
-
-      // Pass the formatted dates to the service
       final results = await service.fetchTripDetails(
         startDate: formattedStartDate,
         endDate: formattedEndDate,
@@ -63,7 +60,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         isLoading = false;
       });
     } catch (e) {
-      print('Error in fetchTransactions: $e');
       setState(() {
         errorMessage = 'Error fetching transactions: ${e.toString()}';
         isLoading = false;
@@ -71,10 +67,72 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
+  Future<void> updateTransaction(TripDetails trip) async {
+    try {
+      final response = await http.post(
+        Uri.parse(updateUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          '_id': trip.id,
+          'destination_to': trip.destinationTo,
+          'weight': trip.weight,
+          'actual_weight': trip.actualWeight,
+          'freight': trip.freight,
+          'diesel_amount': trip.dieselAmount,
+          'advance': trip.advance,
+          'toll': trip.toll,
+          'tds_rate': trip.tdsRate,
+          'amount': trip.amount,
+          'transaction_status': trip.transactionStatus,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Transaction updated successfully')),
+        );
+        fetchTransactions();
+      } else {
+        throw Exception('Failed to update transaction');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating transaction: ${e.toString()}')),
+      );
+    }
+  }
+
+  // Future<void> generateBillsPDF() async {
+  //   if (selectedTripIds.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Please select at least one transaction')),
+  //     );
+  //     return;
+  //   }
+  //
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse('$baseUrl/generate-pdf'),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: json.encode({'trip_ids': selectedTripIds.toList()}),
+  //     );
+  //
+  //     if (response.statusCode == 200) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Bills generated successfully')),
+  //       );
+  //     } else {
+  //       throw Exception('Failed to generate bills');
+  //     }
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Error generating bills: ${e.toString()}')),
+  //     );
+  //   }
+  // }
   Future<void> _selectDate(BuildContext context, bool isStart) async {
     final DateTime now = DateTime.now();
     final DateTime lastValidDate = DateTime(2025);
-
     final DateTime initialDate = now.isAfter(lastValidDate) ? lastValidDate : now;
 
     final DateTime? picked = await showDatePicker(
@@ -95,39 +153,153 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
+  Future<void> _showEditDialog(TripDetails trip) async {
+    final formKey = GlobalKey<FormState>();
+    final editedTrip = TripDetails.fromJson(trip.toJson());
 
-  double calculateAmount(TripDetails trip) {
-    double _parseDouble(dynamic value) {
-      if (value == null) return 0.0;
-      if (value is double) return value;
-      if (value is int) return value.toDouble();
-      if (value is String) return double.tryParse(value) ?? 0.0;
-      return 0.0;
-    }
-
-    double amount = 0;
-    amount += _parseDouble(trip.freight);
-    amount -= _parseDouble(trip.advance);
-    amount -= _parseDouble(trip.diesel);
-    amount -= _parseDouble(trip.toll);
-    return amount;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Transaction'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildEditField(
+                  label: 'Destination',
+                  initialValue: editedTrip.destinationTo ?? '',
+                  onSaved: (value) => editedTrip.destinationTo = value,
+                ),
+                _buildEditField(
+                  label: 'Weight',
+                  initialValue: editedTrip.weight?.toString() ?? '',
+                  onSaved: (value) => editedTrip.weight = double.tryParse(value ?? ''),
+                  keyboardType: TextInputType.number,
+                ),
+                _buildEditField(
+                  label: 'Actual Weight',
+                  initialValue: editedTrip.actualWeight?.toString() ?? '',
+                  onSaved: (value) => editedTrip.actualWeight = double.tryParse(value ?? ''),
+                  keyboardType: TextInputType.number,
+                ),
+                _buildEditField(
+                  label: 'Freight',
+                  initialValue: editedTrip.freight?.toString() ?? '',
+                  onSaved: (value) => editedTrip.freight = double.tryParse(value ?? ''),
+                  keyboardType: TextInputType.number,
+                ),
+                _buildEditField(
+                  label: 'Rate',
+                  initialValue: editedTrip.rate?.toString() ?? '',
+                  onSaved: (value) => editedTrip.rate = double.tryParse(value ?? ''),
+                  keyboardType: TextInputType.number,
+                ),
+                _buildEditField(
+                  label: 'Diesel Amount',
+                  initialValue: editedTrip.dieselAmount?.toString() ?? '',
+                  onSaved: (value) => editedTrip.dieselAmount = double.tryParse(value ?? ''),
+                  keyboardType: TextInputType.number,
+                ),
+                _buildEditField(
+                  label: 'Advance',
+                  initialValue: editedTrip.advance?.toString() ?? '',
+                  onSaved: (value) => editedTrip.advance = double.tryParse(value ?? ''),
+                  keyboardType: TextInputType.number,
+                ),
+                _buildEditField(
+                  label: 'Toll',
+                  initialValue: editedTrip.toll?.toString() ?? '',
+                  onSaved: (value) => editedTrip.toll = double.tryParse(value ?? ''),
+                  keyboardType: TextInputType.number,
+                ),
+                _buildEditField(
+                  label: 'TDS Rate',
+                  initialValue: editedTrip.tdsRate?.toString() ?? '',
+                  onSaved: (value) => editedTrip.tdsRate = double.tryParse(value ?? ''),
+                  keyboardType: TextInputType.number,
+                ),
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Transaction Status',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: editedTrip.transactionStatus,
+                  items: ['Acknowledged', 'Billed'].map((status) {
+                    return DropdownMenuItem(
+                      value: status,
+                      child: Text(status),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    editedTrip.transactionStatus = value;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState?.validate() ?? false) {
+                formKey.currentState?.save();
+                try {
+                  final service = TripDetailsService();
+                  await service.updateTransaction(editedTrip,trip.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Transaction updated successfully')),
+                  );
+                  Navigator.pop(context);
+                  fetchTransactions(); // Refresh the list
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating transaction: $e')),
+                  );
+                }
+              }
+            },
+            child: Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
-  void handleSearch() {
-    if (startDate == null || endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select both start and end dates.')),
-      );
-      return;
-    }
 
-    if (startDate!.isAfter(endDate!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('End date should be greater than start date.')),
-      );
-      return;
-    }
-
-    fetchTransactions();
+  Widget _buildEditField({
+    required String label,
+    required String initialValue,
+    required Function(String?) onSaved,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        initialValue: initialValue,
+        keyboardType: keyboardType,
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please enter a value';
+          }
+          if (keyboardType == TextInputType.number) {
+            if (double.tryParse(value) == null) {
+              return 'Please enter a valid number';
+            }
+          }
+          return null;
+        },
+        onSaved: onSaved,
+      ),
+    );
   }
 
   Map<String, List<TripDetails>> groupByDate() {
@@ -139,7 +311,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       }
       groups[date]!.add(trip);
     }
-    return groups;
+    return Map.fromEntries(
+      groups.entries.toList()..sort((a, b) => b.key.compareTo(a.key)),
+    );
   }
 
   @override
@@ -147,6 +321,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Transactions'),
+        // actions: [
+        //   if (selectedTripIds.isNotEmpty)
+        //     // IconButton(
+        //     //   icon: Icon(Icons.picture_as_pdf),
+        //     //   // onPressed: generateBillsPDF,
+        //     //   tooltip: 'Generate Bills PDF',
+        //     // ),
+        // ],
       ),
       body: Column(
         children: [
@@ -189,7 +371,23 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
           SizedBox(width: 16),
           ElevatedButton(
-            onPressed: handleSearch,
+            onPressed: () {
+              if (startDate == null || endDate == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Please select both start and end dates.')),
+                );
+                return;
+              }
+
+              if (startDate!.isAfter(endDate!)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('End date should be greater than start date.')),
+                );
+                return;
+              }
+
+              fetchTransactions();
+            },
             child: Text('Search'),
           ),
         ],
@@ -239,7 +437,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 final trip = dayTrips[tripIndex];
                 return Card(
                   margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  elevation: 2,
                   child: Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Column(
@@ -248,24 +445,59 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              DateFormat('HH:mm').format(trip.createdAt ?? DateTime.now()),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                            // Left side: Checkbox and Time
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Checkbox
+                                Checkbox(
+                                  value: selectedTripIds.contains(trip.tripId),
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      if (value == true && trip.tripId != null) {
+                                        selectedTripIds.add(trip.tripId!);
+                                      } else if (trip.tripId != null) {
+                                        selectedTripIds.remove(trip.tripId!);
+                                      }
+                                    });
+                                  },
+                                ),
+                                // Time
+                                Text(
+                                  DateFormat('HH:mm').format(trip.createdAt ?? DateTime.now()),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'Amount: ₹${calculateAmount(trip).toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Theme.of(context).primaryColor,
-                              ),
+                            // Right side: Edit icon and Amount
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // Edit icon
+                                IconButton(
+                                  icon: Icon(Icons.edit),
+                                  onPressed: () => _showEditDialog(trip),
+                                ),
+                                // Amount
+                                Text(
+                                  'Amount: ₹${trip.amount ?? '0.00'}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                         Divider(),
+                        _buildInfoRow('Trip ID', trip.tripId ?? '-'),
+                        _buildInfoRow('UserName', trip.username ?? '-'),
+                        _buildInfoRow('Profile', trip.profile ?? '-'),
                         _buildInfoRow('Vendor', trip.vendor ?? '-'),
                         _buildInfoRow('Truck No.', trip.truckNumber ?? '-'),
                         _buildInfoRow('Destination', trip.destinationTo ?? '-'),
@@ -278,14 +510,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         Row(
                           children: [
                             Expanded(child: _buildInfoRow('Freight', '₹${trip.freight ?? '-'}')),
-                            Expanded(
-                              child: _buildInfoRow(
-                                'Rate',
-                                trip.freight != null && trip.weight != null
-                                    ? '₹${(trip.freight! / trip.weight!).toStringAsFixed(2)}'
-                                    : '-',
-                              ),
-                            ),
+                            Expanded(child: _buildInfoRow('Rate', '₹${trip.rate ?? '-'}')),
                           ],
                         ),
                         Row(
@@ -300,10 +525,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             Expanded(child: _buildInfoRow('TDS', '${trip.tdsRate ?? '-'}%')),
                           ],
                         ),
-                        _buildInfoRow('Trip ID', '${trip.tripId ?? '-'}'),
-                        _buildInfoRow('Username', trip.userName ?? '-'),
-                        _buildInfoRow('Profile', trip.profile ?? '-'),
-                        _buildInfoRow('Short Weight', '${trip.differenceInWeight ?? '-'}'),
+                        _buildInfoRow('Bill ID', trip.billingId ?? '-'),
                         _buildInfoRow('Transaction Status', trip.transactionStatus ?? '-'),
                       ],
                     ),
