@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import '../model/truck_details_model.dart';
 
 class TripDetailsService {
@@ -144,44 +146,38 @@ class TripDetailsService {
     };
   }
 
-  // Future<void> generatePDF(List<TripDetails> selectedTrips) async {
-  //   try {
-  //     final url = Uri.parse('$baseUrl/logistics/generate-pdf-transaction');
-  //
-  //     final payload = selectedTrips.map((trip) => {
-  //       'id': trip.id,
-  //       'transaction_status': trip.transactionStatus,
-  //     }).toList();
-  //
-  //     final response = await http.post(
-  //       url,
-  //       headers: {'Content-Type': 'application/json'},
-  //       body: jsonEncode(payload),
-  //     );
-  //
-  //     if (response.statusCode == 200) {
-  //       // Convert response to Uint8List
-  //       final bytes = response.bodyBytes;
-  //
-  //       // Create a blob URL for the PDF
-  //       final blob = html.Blob([bytes], 'application/pdf');
-  //       final url = html.Url.createObjectUrlFromBlob(blob);
-  //
-  //       // Create a link element and trigger download
-  //       final anchor = html.AnchorElement(href: url)
-  //         ..setAttribute('download', 'GeneratedTransactionBill.pdf')
-  //         ..click();
-  //
-  //       // Clean up
-  //       html.Url.revokeObjectUrl(url);
-  //     } else {
-  //       throw Exception('Failed to generate PDF: ${response.statusCode}');
-  //     }
-  //   } catch (e) {
-  //     print('Error generating PDF: $e');
-  //     throw Exception('Failed to generate PDF: $e');
-  //   }
-  // }
+  Future<void> generatePDF(List<String> selectedIds) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/generate-pdf-transaction'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(
+            selectedIds.map((id) => {
+              'id': id,
+              'transaction_status': 'Billed'
+            }).toList()
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        // Get the temporary directory for storing the PDF
+        final directory = await getApplicationDocumentsDirectory();
+        final fileName = 'GeneratedTransactionBill.pdf';
+        final filePath = '${directory.path}/$fileName';
+
+        // Write the PDF data to a file
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+
+        // Open the PDF file
+        await OpenFile.open(filePath);
+      } else {
+        throw Exception('Failed to generate PDF: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error generating PDF: $e');
+    }
+  }
 
   Future<bool> _checkConnectivity() async {
     try {
