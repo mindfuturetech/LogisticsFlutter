@@ -359,7 +359,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       groups.entries.toList()..sort((a, b) => b.key.compareTo(a.key)),
     );
   }
-
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required Function(DateTime?) onChanged,
+  }) {
+    return TextFormField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+        suffixIcon: Icon(Icons.calendar_today),
+      ),
+      readOnly: true,
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+        );
+        if (date != null) {
+          onChanged(date);
+        }
+      },
+      controller: TextEditingController(
+        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -406,32 +433,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget _buildDateSelectionSection() {
     return Padding(
       padding: EdgeInsets.all(16.0),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: TextButton.icon(
-              onPressed: () => _selectDate(context, true),
-              icon: Icon(Icons.calendar_today),
-              label: Text(
-                startDate == null
-                    ? 'Start Date'
-                    : DateFormat('yyyy-MM-dd').format(startDate!),
+          Row(
+            children: [
+              Expanded(
+                child: _buildDateField(
+                  label: 'Start Date',
+                  value: startDate,
+                  onChanged: (date) => setState(() => startDate = date),
+                ),
               ),
-            ),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: TextButton.icon(
-              onPressed: () => _selectDate(context, false),
-              icon: Icon(Icons.calendar_today),
-              label: Text(
-                endDate == null
-                    ? 'End Date'
-                    : DateFormat('yyyy-MM-dd').format(endDate!),
+              SizedBox(width: 16),
+              Expanded(
+                child: _buildDateField(
+                  label: 'End Date',
+                  value: endDate,
+                  onChanged: (date) => setState(() => endDate = date),
+                ),
               ),
-            ),
+            ],
           ),
-          SizedBox(width: 16),
+          SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
               if (startDate == null || endDate == null) {
@@ -456,6 +479,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       ),
     );
   }
+
 
   Widget _buildTransactionsList() {
     if (isLoading) {
