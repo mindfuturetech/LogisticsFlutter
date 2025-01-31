@@ -174,28 +174,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
-  Future<void> _selectDate(BuildContext context, bool isStart) async {
-    final DateTime now = DateTime.now();
-    final DateTime lastValidDate = DateTime(2025);
-    final DateTime initialDate = now.isAfter(lastValidDate) ? lastValidDate : now;
-
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2000),
-      lastDate: lastValidDate,
-    );
-
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          startDate = picked;
-        } else {
-          endDate = picked;
-        }
-      });
-    }
-  }
 
   Future<void> _showEditDialog(TripDetails trip) async {
     final formKey = GlobalKey<FormState>();
