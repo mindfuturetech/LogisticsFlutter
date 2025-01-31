@@ -14,11 +14,12 @@ class _FreightScreenState extends State<FreightScreen> {
 
   List<Map<String, dynamic>> _freightList = [];
   final _formKey = GlobalKey<FormState>();
+  final _editFormKey = GlobalKey<FormState>();
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
+  final TextEditingController _editRateController = TextEditingController();
   String _message = "";
-  int? _editingId;
 
   @override
   void initState() {
@@ -82,52 +83,51 @@ class _FreightScreenState extends State<FreightScreen> {
     }
   }
 
-  Future<void> _updateFreightData(int id) async {
-    final oldData = _freightList.firstWhere((item) => item["id"] == id);
-    final payload = {
-      "old": {
-        "from": oldData["from"],
-        "to": oldData["to"],
-        "rate": oldData["rate"],
-      },
-      "new": {
-        "from": _fromController.text,
-        "to": _toController.text,
-        "rate": double.parse(_rateController.text),
-      },
-    };
-    try {
-      final response = await http.post(
-        Uri.parse(updateFreightDataUrl),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(payload),
-      );
-      if (response.statusCode == 200) {
+  Future<void> _updateFreightData(Map<String, dynamic> oldData) async {
+    if (_editFormKey.currentState!.validate()) {
+      final payload = {
+        "old": {
+          "from": oldData["from"],
+          "to": oldData["to"],
+          "rate": oldData["rate"],
+        },
+        "new": {
+          "from": oldData["from"],  // Keep the original from
+          "to": oldData["to"],      // Keep the original to
+          "rate": double.parse(_editRateController.text),
+        },
+      };
+
+      try {
+        final response = await http.post(
+          Uri.parse(updateFreightDataUrl),
+          headers: {"Content-Type": "application/json"},
+          body: json.encode(payload),
+        );
+        if (response.statusCode == 200) {
+          setState(() {
+            _freightList = _freightList.map((item) {
+              if (item["id"] == oldData["id"]) {
+                return {
+                  ...item,
+                  "rate": double.parse(_editRateController.text),
+                };
+              }
+              return item;
+            }).toList();
+            _message = "Freight rate updated successfully!";
+          });
+          Navigator.of(context).pop(); // Close the dialog
+        } else {
+          setState(() {
+            _message = "Failed to update freight rate.";
+          });
+        }
+      } catch (e) {
         setState(() {
-          _freightList = _freightList.map((item) {
-            if (item["id"] == id) {
-              return {
-                "id": id,
-                "from": payload["new"]?["from"],
-                "to": payload["new"]?["to"],
-                "rate": payload["new"]?["rate"],
-              };
-            }
-            return item;
-          }).toList();
-          _message = "Freight data updated successfully!";
-          _editingId = null;
-        });
-        _clearForm();
-      } else {
-        setState(() {
-          _message = "Failed to update freight data.";
+          _message = "Error updating rate: $e";
         });
       }
-    } catch (e) {
-      setState(() {
-        _message = "Error updating data: $e";
-      });
     }
   }
 
@@ -137,14 +137,63 @@ class _FreightScreenState extends State<FreightScreen> {
     _rateController.clear();
   }
 
-  void _startEditing(int id) {
-    final data = _freightList.firstWhere((item) => item["id"] == id);
-    _fromController.text = data["from"];
-    _toController.text = data["to"];
-    _rateController.text = data["rate"].toString();
-    setState(() {
-      _editingId = id;
-    });
+  void _showEditDialog(Map<String, dynamic> item) {
+    _editRateController.text = item["rate"].toString();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Edit Freight Rate"),
+          content: Form(
+            key: _editFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "From: ${item['from']}",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "To: ${item['to']}",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _editRateController,
+                  decoration: InputDecoration(
+                    labelText: "Rate",
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Please enter a rate";
+                    }
+                    if (double.tryParse(value) == null) {
+                      return "Please enter a valid number";
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () => _updateFreightData(item),
+              child: Text("Update Rate"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -161,28 +210,41 @@ class _FreightScreenState extends State<FreightScreen> {
                 children: [
                   TextFormField(
                     controller: _fromController,
-                    decoration: InputDecoration(labelText: "From Destination"),
+                    decoration: InputDecoration(
+                      labelText: "From Destination",
+                      border: OutlineInputBorder(),
+                    ),
                     validator: (value) => value!.isEmpty ? "Enter a source" : null,
                   ),
+                  SizedBox(height: 16),
                   TextFormField(
                     controller: _toController,
-                    decoration: InputDecoration(labelText: "To Destination"),
+                    decoration: InputDecoration(
+                      labelText: "To Destination",
+                      border: OutlineInputBorder(),
+                    ),
                     validator: (value) => value!.isEmpty ? "Enter a destination" : null,
                   ),
+                  SizedBox(height: 16),
                   TextFormField(
                     controller: _rateController,
-                    decoration: InputDecoration(labelText: "Rate"),
+                    decoration: InputDecoration(
+                      labelText: "Rate",
+                      border: OutlineInputBorder(),
+                    ),
                     keyboardType: TextInputType.number,
                     validator: (value) => value!.isEmpty ? "Enter a rate" : null,
                   ),
                   SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: _editingId == null
-                        ? _addFreightData
-                        : () => _updateFreightData(_editingId!),
-                    child: Text(_editingId == null ? "Add Freight" : "Update Freight"),
+                    onPressed: _addFreightData,
+                    child: Text("Add Freight"),
                   ),
-                  if (_message.isNotEmpty) Text(_message, style: TextStyle(color: Colors.green)),
+                  if (_message.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(_message, style: TextStyle(color: Colors.green)),
+                    ),
                 ],
               ),
             ),
@@ -195,10 +257,10 @@ class _FreightScreenState extends State<FreightScreen> {
                   return Card(
                     child: ListTile(
                       title: Text("${item['from']} to ${item['to']}"),
-                      subtitle: Text("Rate: \$${item['rate']}"),
+                      subtitle: Text("Rate: ₹${item['rate']}"),
                       trailing: IconButton(
                         icon: Icon(Icons.edit),
-                        onPressed: () => _startEditing(item["id"]),
+                        onPressed: () => _showEditDialog(item),
                       ),
                     ),
                   );

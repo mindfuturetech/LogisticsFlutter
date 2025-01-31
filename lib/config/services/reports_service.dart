@@ -23,9 +23,9 @@ class ReportsService {
     if (Platform.isAndroid) {
       return 'http://10.0.2.2:5000/logistics'; // Android emulator localhost
     } else if (Platform.isIOS) {
-      return 'http://localhost:5000/logistics'; // iOS simulator localhost
+      return 'http://10.0.2.2:5000/logistics'; // iOS simulator localhost
     }
-    return 'http://localhost:5000/logistics'; // Default fallback
+    return 'http://10.0.2.2:5000/logistics'; // Default fallback
   }
 
   Future<List<TripDetails>> getReports({

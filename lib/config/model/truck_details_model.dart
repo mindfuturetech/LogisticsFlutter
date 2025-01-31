@@ -1,40 +1,40 @@
 
 class TripDetails {
-  String? tripId;
-  String? username;
-  String? profile;
-  String? truckNumber;
-  String? doNumber;
-  String? driverName;
-  String? vendor;
-  String? destinationFrom;
-  String? destinationTo;
-  String? truckType;
-  String? transactionStatus;
-  double? weight;
-  double? actualWeight;
-  double? differenceInWeight;
-  double? freight;
-  double? diesel;
-  double? dieselAmount;
-  String? dieselSlipNumber;
-  double? tdsRate;
-  double? advance;
-  double? toll;
-  double? adblue;
-  double? greasing;
-  String? billId;
-  Map<String, String?>? dieselSlipImage;
-  Map<String, String?>? loadingAdvice;
-  Map<String, String?>? invoiceCompany;
-  Map<String, String?>? weightmentSlip;
-  String? id;
-  DateTime? createdAt;
-  DateTime? updatedAt;
+   String? tripId;
+   String? username;
+   String? profile;
+   String? truckNumber;
+   String? doNumber;
+   String? driverName;
+   String? vendor;
+   String? destinationFrom;
+   String? destinationTo;
+   String? truckType;
+   String? transactionStatus;
+   double? weight;
+   double? actualWeight;
+   double? differenceInWeight;
+   double? freight;
+   double? diesel;
+   double? dieselAmount;
+   String? dieselSlipNumber;
+   double? tdsRate;
+   double? advance;
+   double? toll;
+   double? adblue;
+   double? greasing;
+   String? billId;
+   Map<String, String?>? dieselSlipImage;
+   Map<String, String?>? loadingAdvice;
+   Map<String, String?>? invoiceCompany;
+   Map<String, String?>? weightmentSlip;
+   String? id;
+   DateTime? createdAt;
+   DateTime? updatedAt;
 
-  double? rate;
-  String? billingId;
-  double? amount;
+   double? rate;
+   String? billingId;
+   double? amount;
 
   TripDetails({
     this.tripId,
@@ -77,7 +77,7 @@ class TripDetails {
     return TripDetails(
       tripId: json['TripID']?.toString(),
       username: json['username']?.toString(),
-      profile: json['Profile']?.toString(),
+      profile: json['profile']?.toString(),
       truckNumber: json['TruckNumber']?.toString(),
       doNumber: json['DONumber']?.toString(),
       driverName: json['DriverName']?.toString(),
@@ -122,7 +122,7 @@ class TripDetails {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
     if (tripId != null) data['TripId'] = tripId;
-    if (username != null) data['Username'] = username;   //changes is done
+    if (username != null) data['Username'] = username;
     if (profile != null) data['Profile'] = profile;
     if (truckNumber != null) data['TruckNumber'] = truckNumber;
     if (doNumber != null) data['DONumber'] = doNumber;
@@ -154,17 +154,17 @@ class TripDetails {
     if (id != null) data['_id'] = id;
     return data;
   }
-  static double? _parseDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value);
-    return null;
-  }
+   static double? _parseDouble(dynamic value) {
+     if (value == null) return null;
+     if (value is num) return value.toDouble();
+     if (value is String) return double.tryParse(value);
+     return null;
+   }
 
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value;
-    if (value is String) return DateTime.tryParse(value);
-    return null;
-  }
+   static DateTime? _parseDateTime(dynamic value) {
+     if (value == null) return null;
+     if (value is DateTime) return value;
+     if (value is String) return DateTime.tryParse(value);
+     return null;
+   }
 }

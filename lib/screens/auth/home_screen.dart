@@ -24,7 +24,6 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   TripDetails? _truckData;
 
 
-
   String baseUrl = 'http://10.0.2.2:5000/logistics';
   List<Map<String, dynamic>> destinationList = [];
   List<Map<String, dynamic>> vendorsList = [];
