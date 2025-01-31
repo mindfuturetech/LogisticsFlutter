@@ -8,7 +8,7 @@ import 'package:http_parser/http_parser.dart';
 import '../model/vehicle_model.dart';
 
 class VehicleService {
-  static const String baseUrl = 'http://192.168.130.219:5000/logistics'; // Use your IP address for real device
+  static const String baseUrl = 'http://10.0.2.2:5000/logistics'; // Use your IP address for real device
   Future<List<Vehicle>> getVehicles() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/list-vehicle'));

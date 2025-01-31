@@ -1,11 +1,12 @@
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-
-
+import 'package:logistics/widget/custom_appbar.dart';
 
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/truck_details_service.dart';
+import '../../widget/custom_drawer.dart';
 
 class TruckDetailsScreen extends StatefulWidget {
   const TruckDetailsScreen({Key? key}) : super(key: key);
@@ -19,15 +20,19 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   final dio = Dio();
   final _formKey = GlobalKey<FormState>();
   final _logisticsService = LogisticsService();
-  final _truckDetails = TripDetails();
+  // final _truckDetails = TripDetails();
+  TripDetails? _truckData;
 
 
-  String baseUrl = 'http://192.168.130.219:5000/logistics';
+
+  String baseUrl = 'http://10.0.2.2:5000/logistics';
   List<Map<String, dynamic>> destinationList = [];
   List<Map<String, dynamic>> vendorsList = [];
   List<Map<String, dynamic>> truckNumbersList = [];
 
   // Initialize all controllers
+
+  final userNameController = TextEditingController();
   TextEditingController truckNumberController = TextEditingController();
   final _doNumberController = TextEditingController();
   final _dateController = TextEditingController();
@@ -53,6 +58,10 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
 
   String selectedTruckType = '';
   String selectedTransactionStatus = '';
+  String userName = 'admin';
+
+  //
+  // get truckDetails => null;
 
   @override
   void initState() {
@@ -72,6 +81,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
       print('Error fetching destination data: $error');
     }
   }
+
 
   @override
   void dispose() {
@@ -198,121 +208,244 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   }
   // Add other controllers as needed
 
+  //Added Search Functionality
+  void _updateFormWithTruck(TripDetails? truck) {
+    setState(() {
+      _truckData = truck;
+      print("Response body");
+      if (truck != null) {
+        truckNumberController.text = truck.truckNumber ?? '';
+        _doNumberController.text = truck.doNumber ?? '';
+        _driverNameController.text = truck.driverName ?? '';
+        vendorController.text = truck.vendor ?? '';
+        destinationFromController.text = truck.destinationFrom ?? '';
+        destinationToController.text = truck.destinationTo ?? '';
+        weightController.text = truck.weight?.toString() ?? '';
+        _freightController.text = truck.freight?.toString() ?? '';
+        _dieselController.text = truck.diesel?.toString() ?? '';
+        _dieselAmountController.text = truck.dieselAmount?.toString() ?? '';
+        _dieselSlipNumberController.text = truck.dieselSlipNumber ?? '';
+        _tdsRateController.text = truck.tdsRate?.toString() ?? '';
+        _advanceController.text = truck.advance?.toString() ?? '';
+        _tollController.text = truck.toll?.toString() ?? '';
+        _adblueController.text = truck.adblue?.toString() ?? '';
+        _greasingController.text = truck.greasing?.toString() ?? '';
+      } else {
+        _clearForm();
+      }
+    });
+  }
+
+  void _clearForm() {
+    truckNumberController.clear();
+    _doNumberController.clear();
+    _driverNameController.clear();
+    vendorController.clear();
+    destinationFromController.clear();
+    destinationToController.clear();
+    weightController.clear();    //**
+    _freightController.clear();    //**
+    _dieselController.clear();
+    _dieselAmountController.clear();
+    _dieselSlipNumberController.clear();
+    _tdsRateController.clear();
+    _advanceController.clear();
+    _tollController.clear();
+    _adblueController.clear();
+    _greasingController.clear();
+    _truckData = null;
+  }
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       key: _scaffoldKey,
       // Custom AppBar with black strip
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: Container(
-          color: Colors.black,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Toggle Button
-                  IconButton(
-                    icon: const Icon(Icons.menu, color: Colors.white),
-                    onPressed: () {
-                      _scaffoldKey.currentState?.openDrawer();
-                    },
-                  ),
-                  // Logo
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: Image.asset(
-                      'assets/logo.png', // Make sure to add your logo in assets
-                      height: 40,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+      // appBar: PreferredSize(
+      //   preferredSize: const Size.fromHeight(100),
+      //   child: Container(
+      //     color: Colors.black,
+      //     child: SafeArea(
+      //       child: Padding(
+      //         padding: const EdgeInsets.symmetric(horizontal: 16),
+      //         child: Row(
+      //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      //           children: [
+      //             // // Logo
+      //             // Padding(
+      //             //   padding: const EdgeInsets.only(right: 16),
+      //             //   child: Image.asset(
+      //             //     'assets/logo.png', // Make sure to add your logo in assets
+      //             //     height: 40,
+      //             //   ),
+      //             // ),
+      //
+      //             // Toggle Button
+      //             IconButton(
+      //               icon: const Icon(Icons.menu, color: Colors.white,size: 30,),
+      //               onPressed: () {
+      //                 _scaffoldKey.currentState?.openDrawer();
+      //               },
+      //             ),
+      //
+      //             // search bar
+      //             Expanded(
+      //               child: Container(
+      //                 height: 40,
+      //                 width: 50,
+      //                 decoration: BoxDecoration(
+      //                   color: Colors.grey[100],
+      //                   borderRadius: BorderRadius.circular(10),
+      //                 ),
+      //                 child: TextField(
+      //                   // controller: searchController,
+      //                   decoration: InputDecoration(
+      //                     hintText: 'Truck Id',
+      //                     hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
+      //                     border: InputBorder.none,
+      //                     contentPadding: const EdgeInsets.symmetric(
+      //                       horizontal: 16,
+      //                       vertical: 8,
+      //                     ),
+      //                     isDense: true,
+      //                     prefixIcon: Icon(
+      //                       Icons.search,
+      //                       color: Colors.grey[600],
+      //                       size: 30,
+      //                     )
+      //                   ),
+      //                   // onSubmitted: onSearch,
+      //                 ),
+      //               ),
+      //             ),
+      //
+      //             //Notification Button
+      //             IconButton(
+      //                 onPressed: (){
+      //                    Navigator.push(
+      //                      context,
+      //                      MaterialPageRoute(
+      //                        builder: (context) => const NotificationPage(),
+      //                      ),
+      //                    );
+      //                 },
+      //                 icon: Icon(
+      //                   Icons.notifications_active,
+      //                   size: 30,
+      //                   color: Colors.yellow,
+      //                 )
+      //             ),
+      //
+      //             IconButton(
+      //                 onPressed: (){},
+      //                 icon: Icon(
+      //                   Icons.logout,
+      //                   size: 30,
+      //                   color: Colors.red,
+      //                 )
+      //             )
+      //           ],
+      //         ),
+      //       ),
+      //     ),
+      //   ),
+      // ),
       // Navigation Drawer
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.black),
-              child: Text(
-                'Menu',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Upload Truck Details'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.local_shipping),
-              title: const Text('Freight Master'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/freight'); // Navigates to the '/freight' route
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.directions_car),
-              title: const Text('Vehicle Master'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/vehicle');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.man),
-              title: const Text('Vendor Master'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/vendor');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.book),
-              title: const Text('Reports'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/reports');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.money_outlined),
-              title: const Text('Billing'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/generate-bill');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.report),
-              title: const Text('Transaction'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/transaction');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add_shopping_cart_sharp),
-              title: const Text('business'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/business');
-              },
-            ),
-            // Add other menu items
-          ],
+
+
+      // drawer: Drawer(
+      //   child: ListView(
+      //     padding: EdgeInsets.zero,
+      //     children: [
+      //       Container(
+      //         height: 150,  // Set the height to a smaller value, e.g., 100
+      //         child: const DrawerHeader(
+      //           decoration: BoxDecoration(color: Colors.black),
+      //           child: Text(
+      //             'Menu',
+      //             style: TextStyle(color: Colors.white, fontSize: 24),
+      //           ),
+      //         ),
+      //       ),
+      //       ListTile(
+      //         leading: const Icon(Icons.home),
+      //         title: const Text('Upload Truck Details'),
+      //         onTap: () {
+      //           Navigator.pop(context);
+      //         },
+      //       ),
+      //       ListTile(
+      //         leading: const Icon(Icons.local_shipping),
+      //         title: const Text('Freight Master'),
+      //         onTap: () {
+      //           Navigator.pop(context);
+      //           Navigator.pushNamed(context, '/freight'); // Navigates to the '/freight' route
+      //         },
+      //       ),
+      //       ListTile(
+      //         leading: const Icon(Icons.directions_car),
+      //         title: const Text('Vehicle Master'),
+      //         onTap: () {
+      //           Navigator.pop(context);
+      //           Navigator.pushNamed(context, '/vehicle');
+      //         },
+      //       ),
+      //       ListTile(
+      //         leading: const Icon(Icons.man),
+      //         title: const Text('Vendor Master'),
+      //         onTap: () {
+      //           Navigator.pop(context);
+      //           Navigator.pushNamed(context, '/vendor');
+      //         },
+      //       ),
+      //       ListTile(
+      //         leading: const Icon(Icons.book),
+      //         title: const Text('Reports'),
+      //         onTap: () {
+      //           Navigator.pop(context);
+      //           Navigator.pushNamed(context, '/reports');
+      //         },
+      //       ),
+      //       ListTile(
+      //         leading: const Icon(Icons.money_outlined),
+      //         title: const Text('Billing'),
+      //         onTap: () {
+      //           Navigator.pop(context);
+      //           Navigator.pushNamed(context, '/generate-bill');
+      //         },
+      //       ),
+      //       ListTile(
+      //         leading: const Icon(Icons.report),
+      //         title: const Text('Transaction'),
+      //         onTap: () {
+      //           Navigator.pop(context);
+      //           Navigator.pushNamed(context, '/transaction');
+      //         },
+      //       ),
+      //       ListTile(
+      //         leading: const Icon(Icons.add_shopping_cart_sharp),
+      //         title: const Text('business'),
+      //         onTap: () {
+      //           Navigator.pop(context);
+      //           Navigator.pushNamed(context, '/business');
+      //         },
+      //       ),
+      //       // Add other menu items
+      //     ],
+      //   ),
+      // ),
+
+      // appBar: CustomAppBar(scaffoldKey: _scaffoldKey),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: CustomAppBar(
+          scaffoldKey: _scaffoldKey,
+          onTruckFound: _updateFormWithTruck,
         ),
       ),
+      drawer: const CustomDrawer(),
+
       // Main Content
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -672,31 +805,58 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   }
 
   Future<void> _submitForm() async {
+    print("Entry is done");
     if (_formKey.currentState!.validate()) {
       try {
         // Update truck details object with form values
-        _truckDetails
-          ..truckNumber = truckNumberController.text
-          ..doNumber = _doNumberController.text
-          ..driverName = _driverNameController.text
-          ..vendor = vendorController.text
-          ..destinationFrom = destinationFromController.text
-          ..destinationTo = destinationToController.text
-          ..truckType = selectedTruckType
-          ..transactionStatus = selectedTransactionStatus
-          ..freight = double.tryParse(_freightController.text) ?? 0.0
-          ..weight = double.tryParse(weightController.text) ?? 0.0
-          ..diesel = double.tryParse(_dieselController.text) ?? 0.0
-          ..dieselAmount = double.tryParse(_dieselAmountController.text) ?? 0.0
-          ..dieselSlipNumber = _dieselSlipNumberController.text
-          ..tdsRate = double.tryParse(_tdsRateController.text) ?? 0.0
-          ..advance = double.tryParse(_advanceController.text) ?? 0.0
-          ..toll = double.tryParse(_tollController.text) ?? 0.0
-          ..adblue = double.tryParse(_adblueController.text) ?? 0.0
-          ..greasing = double.tryParse(_greasingController.text) ?? 0.0;
 
-        await _logisticsService.submitTruckDetails(_truckDetails);
+        // _truckDetails
+        //   ..truckNumber = truckNumberController.text
+        //   ..doNumber = _doNumberController.text
+        //   ..driverName = _driverNameController.text
+        //   ..vendor = vendorController.text
+        //   ..destinationFrom = destinationFromController.text
+        //   ..destinationTo = destinationToController.text
+        //   ..truckType = selectedTruckType
+        //   ..transactionStatus = selectedTransactionStatus
+        //   ..freight = double.tryParse(_freightController.text) ?? 0.0
+        //   ..weight = double.tryParse(weightController.text) ?? 0.0
+        //   ..diesel = double.tryParse(_dieselController.text) ?? 0.0
+        //   ..dieselAmount = double.tryParse(_dieselAmountController.text) ?? 0.0
+        //   ..dieselSlipNumber = _dieselSlipNumberController.text
+        //   ..tdsRate = double.tryParse(_tdsRateController.text) ?? 0.0
+        //   ..advance = double.tryParse(_advanceController.text) ?? 0.0
+        //   ..toll = double.tryParse(_tollController.text) ?? 0.0
+        //   ..adblue = double.tryParse(_adblueController.text) ?? 0.0
+        //   ..greasing = double.tryParse(_greasingController.text) ?? 0.0;
 
+        // await _logisticsService.submitTruckDetails(_truckDetails);
+
+        //new code
+        TripDetails details = TripDetails(
+          truckNumber: truckNumberController.text,
+          username:'admin',
+          profile:'admin',
+          doNumber: _doNumberController.text,
+          transactionStatus:'Open',
+          driverName: _driverNameController.text,
+          vendor: vendorController.text,
+          destinationFrom: destinationFromController.text,
+          destinationTo: destinationToController.text,
+          truckType:selectedTruckType,
+          weight: double.tryParse(weightController.text) ?? 0,
+          freight: double.tryParse(_freightController.text) ?? 0,
+          diesel: double.tryParse(_dieselController.text) ?? 0,
+          dieselAmount: double.tryParse(_dieselAmountController.text) ?? 0,
+          dieselSlipNumber: _dieselSlipNumberController.text,
+          tdsRate: double.tryParse(_tdsRateController.text) ?? 0,
+          advance: double.tryParse(_advanceController.text) ?? 0,
+          toll: double.tryParse(_tollController.text) ?? 0,
+          adblue: double.tryParse(_adblueController.text) ?? 0,
+          greasing: double.tryParse(_greasingController.text) ?? 0,
+        );
+
+        await _logisticsService.submitTruckDetails(details);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Details submitted successfully')),
         );
@@ -716,3 +876,6 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
     }
   }
 }
+
+
+

@@ -8,9 +8,9 @@ import '../model/truck_details_model.dart';
 class TripDetailsService {
   static String get baseUrl {
     if (Platform.isAndroid && !kIsWeb) {
-      return 'http://192.168.130.219:5000';
+      return 'http://10.0.2.2:5000';
     } else if (Platform.isAndroid) {
-      return 'http://192.168.130.219:5000';
+      return 'http://10.0.2.2:5000';
     }
     return 'http://localhost:5000';
   }

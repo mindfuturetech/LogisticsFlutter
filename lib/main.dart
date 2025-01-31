@@ -11,6 +11,7 @@ import 'package:logistics/screens/auth/login_screen.dart';
 import 'package:logistics/screens/auth/signup_screen.dart';
 import 'package:logistics/screens/auth/reset_password_screen.dart';
 import 'config/services/auth_service.dart';
+import 'package:logistics/screens/auth/notification_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Logistics App',
       navigatorKey: navigatorKey,
       theme: ThemeData(
@@ -61,6 +63,9 @@ class MyApp extends StatelessWidget {
           case '/transaction':
             return _buildPageRoute(TransactionsScreen());
           case '/business':
+          // Ensure BusinessScreen is properly instantiated
+            return _buildPageRoute(const BusinessScreen());
+          case '/notification':
           // Ensure BusinessScreen is properly instantiated
             return _buildPageRoute(const BusinessScreen());
           default:

@@ -4,7 +4,7 @@ import '../model/truck_details_model.dart';
 
 class LogisticsService {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://192.168.130.219:5000/logistics',
+    baseUrl: 'http://10.0.2.2:5000/logistics',
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
   ));
@@ -75,7 +75,15 @@ class LogisticsService {
 
   Future<void> submitTruckDetails(TripDetails details) async {
     try {
-      await _dio.post('/reports', data: details.toJson());
+      Response response= await _dio.post(
+          'http://10.0.2.2:5000/logistics/reports',
+          data: details.toJson()
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Truck details submitted successfully');
+      } else {
+        throw Exception('Failed to submit truck details: ${response.statusCode}');
+      }
     } catch (e) {
       throw Exception('Failed to submit truck details');
     }

@@ -301,7 +301,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ],
                         ),
                         _buildInfoRow('Trip ID', '${trip.tripId ?? '-'}'),
-                        _buildInfoRow('Username', trip.userName ?? '-'),
+                        _buildInfoRow('Username', trip.username ?? '-'),
                         _buildInfoRow('Profile', trip.profile ?? '-'),
                         _buildInfoRow('Short Weight', '${trip.differenceInWeight ?? '-'}'),
                         _buildInfoRow('Transaction Status', trip.transactionStatus ?? '-'),
