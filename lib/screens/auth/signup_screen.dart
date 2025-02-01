@@ -133,7 +133,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: [
           // Background Image with Blur
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('assets/background.jpg'),
                 fit: BoxFit.cover,
@@ -146,114 +146,115 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
           ),
-          // Content
-          SafeArea(
+          // Centered Content
+          Center(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
                 child: Container(
-                  padding: EdgeInsets.all(24.0),
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(height: 48),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          'assets/logo.png',
-                          height: 100,
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 24),
+                        Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              'assets/logo.png',
+                              height: 100,
+                            ),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 48),
-                      Text(
+                        const SizedBox(height: 24),
+                        Text(
                           'Sign Up',
-                          style: Theme
-                              .of(context)
-                              .textTheme
-                              .headlineMedium,
-                          textAlign: TextAlign.center
-                      ),
-                      SizedBox(height: 32),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Username',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          prefixIcon: Icon(Icons.person),
-                          filled: true,
-                          fillColor: Colors.white,
+                          style: Theme.of(context).textTheme.headlineMedium,
+                          textAlign: TextAlign.center,
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a username';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) => _username = value,
-                      ),
-                      SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: 'Select your profile',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.zero,
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            prefixIcon: Icon(Icons.person),
+                            filled: true,
+                            fillColor: Colors.white,
                           ),
-                          prefixIcon: Icon(Icons.account_circle),
-                          filled: true,
-                          fillColor: Colors.white,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a username';
+                            }
+                            return null;
+                          },
+                          onChanged: (value) => _username = value,
                         ),
-                        value: _selectedProfile.isEmpty
-                            ? null
-                            : _selectedProfile,
-                        items: _profiles.map((String profile) {
-                          return DropdownMenuItem<String>(
-                            value: profile,
-                            child: Text(profile),
-                          );
-                        }).toList(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select a profile';
-                          }
-                          return null;
-                        },
-                        onChanged: (String? value) {
-                          setState(() => _selectedProfile = value ?? '');
-                        },
-                      ),
-                      SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _handleSignup,
-                        child: _isLoading
-                            ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText: 'Select your profile',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            prefixIcon: Icon(Icons.account_circle),
+                            filled: true,
+                            fillColor: Colors.white,
                           ),
-                        )
-                            : Text('Sign Up'),
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Color(0xFF4CAF50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
+                          value: _selectedProfile.isEmpty ? null : _selectedProfile,
+                          items: _profiles.map((String profile) {
+                            return DropdownMenuItem<String>(
+                              value: profile,
+                              child: Text(profile),
+                            );
+                          }).toList(),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select a profile';
+                            }
+                            return null;
+                          },
+                          onChanged: (String? value) {
+                            setState(() => _selectedProfile = value ?? '');
+                          },
                         ),
-                      ),
-                      SizedBox(height: 16),
-                      TextButton(
-                        onPressed: () => Navigator.pushNamed(context, '/login'),
-                        child: Text('Already have an account? Login'),
-                      ),
-                    ],
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSignup,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: const Color(0xFF4CAF50),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : const Text('Sign Up'),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: () => Navigator.pushNamed(context, '/login'),
+                          child: const Text('Already have an account? Login'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

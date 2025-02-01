@@ -5,6 +5,7 @@ import 'package:logistics/screens/auth/freight_master_screen.dart';
 import 'package:logistics/screens/auth/generate_bill_screen.dart';
 import 'package:logistics/screens/auth/home_screen.dart';
 import 'package:logistics/screens/auth/reports_screen.dart';
+import 'package:logistics/screens/auth/todays_list_screen.dart';
 import 'package:logistics/screens/auth/transaction_screen.dart';
 import 'package:logistics/screens/auth/vehicle_list_screen.dart';
 import 'package:logistics/screens/auth/vendor_screen.dart';
@@ -57,12 +58,14 @@ class MyApp extends StatelessWidget {
             return _buildPageRoute(SignUpScreen());
           case '/home':
             return _buildPageRoute(TruckDetailsScreen());
+          case '/todaylist':
+            return _buildPageRoute(TodaysListScreen());
           case '/reset-password':
             return _buildPageRoute(const ResetPasswordScreen());
           case '/freight':
             return _buildPageRoute(FreightScreen());
           case '/vehicle':
-            return _buildPageRoute(const VehicleScreen());
+            return _buildPageRoute(VehicleScreen());
           case '/vendor':
             return _buildPageRoute(VendorScreen());
           case '/reports':
