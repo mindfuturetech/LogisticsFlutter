@@ -173,7 +173,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       });
     }
   }
-
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onChanged,
+  }) {
+    return TextField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        suffixIcon: const Icon(Icons.calendar_today),
+      ),
+      readOnly: true,
+      controller: TextEditingController(
+        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
+      ),
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (date != null) {
+          onChanged(date);
+        }
+      },
+    );
+  }
 
   Future<void> _showEditDialog(TripDetails trip) async {
     final formKey = GlobalKey<FormState>();
@@ -337,34 +364,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       groups.entries.toList()..sort((a, b) => b.key.compareTo(a.key)),
     );
   }
-  Widget _buildDateField({
-    required String label,
-    required DateTime? value,
-    required Function(DateTime?) onChanged,
-  }) {
-    return TextFormField(
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(),
-        suffixIcon: Icon(Icons.calendar_today),
-      ),
-      readOnly: true,
-      onTap: () async {
-        final date = await showDatePicker(
-          context: context,
-          initialDate: value ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime.now(),
-        );
-        if (date != null) {
-          onChanged(date);
-        }
-      },
-      controller: TextEditingController(
-        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
-      ),
-    );
-  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

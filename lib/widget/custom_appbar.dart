@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:logistics/config/model/truck_details_model.dart';
 import '../../screens/auth/notification_page.dart';
 import '../../config/services/notification_service.dart';
+import '../config/services/auth_service.dart';
 import '../config/services/search_service.dart';
 
 // class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -328,10 +329,55 @@ class _CustomAppBarState extends State<CustomAppBar> {
                 ),
               ),
 
-              // Logout Button
               IconButton(
-                onPressed: () {
-                  // Handle logout logic
+                onPressed: () async {
+                  // Show confirmation dialog
+                  final bool? confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Confirm Logout'),
+                        content: const Text('Are you sure you want to logout?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: const Text('Logout'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  // If user confirmed logout
+                  if (confirm == true) {
+                    try {
+                      final authService = AuthService();
+                      await authService.logout();
+
+                      // Clear authentication state
+                      await AuthService.setAuthToken(false);
+
+                      // Navigate to login screen
+                      // Note: Replace '/login' with your actual login route
+                      if (context.mounted) {
+                        Navigator.of(context).pushReplacementNamed('/login');
+                      }
+                    } catch (e) {
+                      // Show error message if logout fails
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Logout failed: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  }
                 },
                 icon: const Icon(
                   Icons.logout,

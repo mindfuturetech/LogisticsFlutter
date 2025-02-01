@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logistics/screens/auth/auth_provider.dart';
 import 'package:logistics/screens/auth/business_screen.dart';
 import 'package:logistics/screens/auth/freight_master_screen.dart';
 import 'package:logistics/screens/auth/generate_bill_screen.dart';
@@ -10,12 +11,20 @@ import 'package:logistics/screens/auth/vendor_screen.dart';
 import 'package:logistics/screens/auth/login_screen.dart';
 import 'package:logistics/screens/auth/signup_screen.dart';
 import 'package:logistics/screens/auth/reset_password_screen.dart';
+import 'package:provider/provider.dart';
 import 'config/services/auth_service.dart';
 import 'package:logistics/screens/auth/notification_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

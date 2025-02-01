@@ -112,6 +112,7 @@ class CustomDrawer extends StatelessWidget {
             title: const Text('Upload Truck Details'),
             onTap: () {
               Navigator.pop(context);
+              Navigator.pushNamed(context, '/home');
             },
           ),
           ListTile(
@@ -164,7 +165,7 @@ class CustomDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.add_shopping_cart_sharp),
-            title: const Text('business'),
+            title: const Text('Business'),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/business');
