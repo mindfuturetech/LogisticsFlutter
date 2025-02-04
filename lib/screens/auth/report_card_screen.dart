@@ -34,7 +34,11 @@ class _ReportCardState extends State<ReportCard> {
     actualWeightController = TextEditingController(
       text: widget.report.actualWeight?.toString() ?? '',
     );
+    // Make sure it's one of the valid options
     transactionStatus = widget.report.transactionStatus ?? 'Open';
+    if (!['Open', 'Acknowledged'].contains(transactionStatus)) {
+      transactionStatus = 'Open';
+    }
   }
 
   Future<void> _pickFile(String field) async {
@@ -93,6 +97,8 @@ class _ReportCardState extends State<ReportCard> {
 
 
   Widget _buildTransactionStatusDropdown() {
+    final List<String> statusOptions = ['Open', 'Acknowledged'];
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -107,10 +113,12 @@ class _ReportCardState extends State<ReportCard> {
               value: transactionStatus,
               isExpanded: true,
               hint: const Text('Select Status'),
-              items: const [
-                DropdownMenuItem(value: 'Open', child: Text('Open')),
-                DropdownMenuItem(value: 'Acknowledged', child: Text('Acknowledged')),
-              ],
+              items: statusOptions.map((String status) {
+                return DropdownMenuItem<String>(
+                  value: status,
+                  child: Text(status),
+                );
+              }).toList(),
               onChanged: (String? newValue) {
                 if (newValue != null) {
                   setState(() {
@@ -125,7 +133,6 @@ class _ReportCardState extends State<ReportCard> {
       ),
     );
   }
-
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
