@@ -108,10 +108,11 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.home),
+            leading: const Icon(Icons.home,size: 30,color:Colors.blue),
             title: const Text('Upload Truck Details'),
             onTap: () {
               Navigator.pop(context);
+              Navigator.pushNamed(context, '/home');
             },
           ),
           ListTile(

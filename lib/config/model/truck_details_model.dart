@@ -122,7 +122,7 @@ class TripDetails {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
     if (tripId != null) data['TripId'] = tripId;
-    if (username != null) data['Username'] = username;
+    if (username != null) data['username'] = username;
     if (profile != null) data['Profile'] = profile;
     if (truckNumber != null) data['TruckNumber'] = truckNumber;
     if (doNumber != null) data['DONumber'] = doNumber;
@@ -154,17 +154,4 @@ class TripDetails {
     if (id != null) data['_id'] = id;
     return data;
   }
-   static double? _parseDouble(dynamic value) {
-     if (value == null) return null;
-     if (value is num) return value.toDouble();
-     if (value is String) return double.tryParse(value);
-     return null;
-   }
-
-   static DateTime? _parseDateTime(dynamic value) {
-     if (value == null) return null;
-     if (value is DateTime) return value;
-     if (value is String) return DateTime.tryParse(value);
-     return null;
-   }
 }
