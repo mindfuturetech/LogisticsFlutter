@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/login',
+      initialRoute: '/todaylist',
       onGenerateRoute: (settings) {
         // Add debug print to track navigation
         print('Navigating to: ${settings.name}');
