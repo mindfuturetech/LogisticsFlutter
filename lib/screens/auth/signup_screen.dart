@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../../config/services/api_service.dart';
 
@@ -15,10 +17,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
 
   final List<String> _profiles = [
-    'loadingManager',
-    'admin',
-    'accountant',
-    'unloadingManager'
+    'Loading Manager',
+    'Unloading Manager',
+    'Admin',
+    'Accountant',
   ];
 
   Future<void> _handleSignup() async {
@@ -39,7 +41,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         throw ValidationException('Username and profile are required');
       }
 
-      final response = await _apiService.signup(trimmedUsername, trimmedProfile);
+      final response = await _apiService.signup(
+          trimmedUsername, trimmedProfile);
       print('Signup response received: $response');
 
       if (!mounted) return;
@@ -59,19 +62,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: Text('Account Created'),
-            content: SelectableText('Your password is: ${response['data']['password']}'),
-            actions: [
-              TextButton(
-                child: Text('OK'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushReplacementNamed('/login');
-                },
+          builder: (context) =>
+              AlertDialog(
+                title: Text('Account Created'),
+                content: SelectableText(
+                    'Your password is: ${response['data']['password']}'),
+                actions: [
+                  TextButton(
+                    child: Text('OK'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushReplacementNamed('/login');
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
         );
       }
     } on UserExistsException catch (e) {
@@ -81,11 +86,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString()),
-          backgroundColor: Colors.orange, // Different color for this specific error
+          backgroundColor: Colors.orange,
+          // Different color for this specific error
           duration: Duration(seconds: 4),
           action: SnackBarAction(
             label: 'Try Again',
-            textColor: Colors.white,
             onPressed: () {
               // Clear only username field
               setState(() => _username = '');
@@ -124,65 +129,138 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Sign Up')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Username',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a username';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) => _username = value,
-                ),
-                SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Profile',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _selectedProfile.isEmpty ? null : _selectedProfile,
-                  items: _profiles.map((String profile) {
-                    return DropdownMenuItem<String>(
-                      value: profile,
-                      child: Text(profile),
-                    );
-                  }).toList(),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select a profile';
-                    }
-                    return null;
-                  },
-                  onChanged: (String? value) {
-                    setState(() => _selectedProfile = value ?? '');
-                  },
-                ),
-                SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSignup,
-                  child: _isLoading
-                      ? CircularProgressIndicator()
-                      : Text('Sign Up'),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ],
+      body: Stack(
+        children: [
+          // Background Image with Blur
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/background.jpg'),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+              child: Container(
+                color: Colors.black.withOpacity(0.2),
+              ),
             ),
           ),
-        ),
+          // Centered Content
+          Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  padding: const EdgeInsets.all(24.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 24),
+                        Center(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              'assets/logo.png',
+                              height: 100,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Sign Up',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            prefixIcon: Icon(Icons.person),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a username';
+                            }
+                            return null;
+                          },
+                          onChanged: (value) => _username = value,
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText: 'Select your profile',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            prefixIcon: Icon(Icons.account_circle),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          value: _selectedProfile.isEmpty ? null : _selectedProfile,
+                          items: _profiles.map((String profile) {
+                            return DropdownMenuItem<String>(
+                              value: profile,
+                              child: Text(profile),
+                            );
+                          }).toList(),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select a profile';
+                            }
+                            return null;
+                          },
+                          onChanged: (String? value) {
+                            setState(() => _selectedProfile = value ?? '');
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSignup,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: const Color(0xFF4CAF50),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : const Text('Sign Up'),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: () => Navigator.pushNamed(context, '/login'),
+                          child: const Text('Already have an account? Login'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

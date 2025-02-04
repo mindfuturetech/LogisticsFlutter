@@ -172,24 +172,35 @@ class _BusinessScreenState extends State<BusinessScreen> {
     }
   }
 
-  Future<void> _selectDate(BuildContext context, bool isStart) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          startDate = picked;
-        } else {
-          endDate = picked;
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onChanged,
+  }) {
+    return TextField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        suffixIcon: const Icon(Icons.calendar_today),
+      ),
+      readOnly: true,
+      controller: TextEditingController(
+        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
+      ),
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (date != null) {
+          onChanged(date);
         }
-      });
-    }
+      },
+    );
   }
+
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -407,36 +418,18 @@ class _BusinessScreenState extends State<BusinessScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: InkWell(
-                          onTap: () => _selectDate(context, true),
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'Start Date',
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(
-                              startDate != null
-                                  ? DateFormat('yyyy-MM-dd').format(startDate!)
-                                  : 'Select Start Date',
-                            ),
-                          ),
+                        child: _buildDateField(
+                          label: 'Start Date',
+                          value: startDate,
+                          onChanged: (date) => setState(() => startDate = date),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 16),
                       Expanded(
-                        child: InkWell(
-                          onTap: () => _selectDate(context, false),
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'End Date',
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(
-                              endDate != null
-                                  ? DateFormat('yyyy-MM-dd').format(endDate!)
-                                  : 'Select End Date',
-                            ),
-                          ),
+                        child: _buildDateField(
+                          label: 'End Date',
+                          value: endDate,
+                          onChanged: (date) => setState(() => endDate = date),
                         ),
                       ),
                     ],

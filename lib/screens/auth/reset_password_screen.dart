@@ -215,8 +215,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _resetPassword,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: Color(0xFF4CAF50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
                 ),
                 child: _isLoading
                     ? const SizedBox(

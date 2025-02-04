@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:logistics/screens/auth/auth_provider.dart';
 import 'package:logistics/screens/auth/business_screen.dart';
 import 'package:logistics/screens/auth/freight_master_screen.dart';
 import 'package:logistics/screens/auth/generate_bill_screen.dart';
 import 'package:logistics/screens/auth/home_screen.dart';
 import 'package:logistics/screens/auth/reports_screen.dart';
+import 'package:logistics/screens/auth/todays_list_screen.dart';
 import 'package:logistics/screens/auth/transaction_screen.dart';
 import 'package:logistics/screens/auth/vehicle_list_screen.dart';
 import 'package:logistics/screens/auth/vendor_screen.dart';
 import 'package:logistics/screens/auth/login_screen.dart';
 import 'package:logistics/screens/auth/signup_screen.dart';
 import 'package:logistics/screens/auth/reset_password_screen.dart';
+import 'package:provider/provider.dart';
 import 'config/services/auth_service.dart';
 import 'package:logistics/screens/auth/notification_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -34,7 +44,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/login',
+      initialRoute: '/todaylist',
       onGenerateRoute: (settings) {
         // Add debug print to track navigation
         print('Navigating to: ${settings.name} with arguments: ${settings.arguments}');
@@ -58,12 +68,15 @@ class MyApp extends StatelessWidget {
                 return SlideTransition(position: offsetAnimation, child: child);
               },
             );
+         
+          case '/todaylist':
+            return _buildPageRoute(TodaysListScreen());
           case '/reset-password':
             return _buildPageRoute(const ResetPasswordScreen());
           case '/freight':
             return _buildPageRoute(FreightScreen());
           case '/vehicle':
-            return _buildPageRoute(const VehicleScreen());
+            return _buildPageRoute(VehicleScreen());
           case '/vendor':
             return _buildPageRoute(VendorScreen());
           case '/reports':

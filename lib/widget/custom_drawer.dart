@@ -116,6 +116,14 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.calendar_month),
+            title: const Text("Today's List"),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/todaylist');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.local_shipping),
             title: const Text('Freight Master'),
             onTap: () {
@@ -165,7 +173,7 @@ class CustomDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.add_shopping_cart_sharp),
-            title: const Text('business'),
+            title: const Text('Business'),
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/business');
