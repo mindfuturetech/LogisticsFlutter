@@ -1,7 +1,6 @@
 // reports_service.dart
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
@@ -12,7 +11,7 @@ import '../model/truck_details_model.dart';
 
 class ReportsService {
   final Dio _dio;
-  final String baseUrl = 'http://10.0.2.2:5000/logistics/api';
+  final String baseUrl = 'http://10.0.2.2:5000/logistics';
   // Constructor with flexible base URL
   ReportsService({String? baseUrl}) : _dio = Dio(BaseOptions(
     // Use platform-aware base URL
@@ -118,78 +117,116 @@ class ReportsService {
     }
   }
 // Method to download file
-  Future<void> downloadFile(String id, String field, String? originalName) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/download/$id/$field'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // Get the application documents directory
-        final directory = await getApplicationDocumentsDirectory();
-        final fileName = originalName ?? 'downloaded_file';
-        final filePath = '${directory.path}/$fileName';
-
-        // Write the file
-        final file = File(filePath);
-        await file.writeAsBytes(response.bodyBytes);
-
-        // Open the file
-        await OpenFile.open(filePath);
-      } else {
-        final errorData = json.decode(response.body);
-        throw Exception(errorData['message'] ?? 'Failed to download file');
-      }
-    } catch (e) {
-      throw Exception('Error downloading file: $e');
-    }
-  }
+//   Future<void> downloadFile(String id, String field, String? originalName) async {
+//     try {
+//       final response = await http.get(
+//         Uri.parse('$baseUrl/download/$id/$field'),
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//       );
+//
+//       if (response.statusCode == 200) {
+//         // Get the application documents directory
+//         final directory = await getApplicationDocumentsDirectory();
+//         final fileName = originalName ?? 'downloaded_file';
+//         final filePath = '${directory.path}/$fileName';
+//
+//         // Write the file
+//         final file = File(filePath);
+//         await file.writeAsBytes(response.bodyBytes);
+//
+//         // Open the file
+//         await OpenFile.open(filePath);
+//       } else {
+//         final errorData = json.decode(response.body);
+//         throw Exception(errorData['message'] ?? 'Failed to download file');
+//       }
+//     } catch (e) {
+//       throw Exception('Error downloading file: $e');
+//     }
+//   }
 
   // Method to update trip details
+  //
+
   Future<void> updateReport(
       String id,
       double weight,
-      double actualWeight, // ✅ Change to Double
+      double actualWeight,
       String transactionStatus,
       Map<String, File?> files) async {
     try {
-      var uri = '$baseUrl/reports/$id';
-      FormData formData = FormData();
+      print('Updating report with ID: $id');
 
-      // Add text fields
+      // Create FormData instance
+      final formData = FormData();
+
+      // Add basic fields
       formData.fields.addAll([
-        MapEntry("id", id),
-        MapEntry("transactionStatus", transactionStatus),
-        MapEntry("weight", weight.toString()),
-        MapEntry("actualWeight", actualWeight.toString()), // ✅ Convert Double to String
+        MapEntry('id', id),
+        MapEntry('transactionStatus', transactionStatus),
+        MapEntry('weight', weight.toString()),
+        MapEntry('actualWeight', actualWeight.toString()),
       ]);
 
-      // Add files if they exist
+      // Add files with specific field names matching backend
+      final validFileFields = [
+        'DieselSlipImage',
+        'LoadingAdvice',
+        'InvoiceCompany',
+        'WeightmentSlip'
+      ];
+
       for (var entry in files.entries) {
-        if (entry.value != null) {
-          formData.files.add(MapEntry(
-            entry.key,
-            await MultipartFile.fromFile(entry.value!.path,
-                filename: entry.value!.path.split('/').last),
-          ));
+        if (entry.value != null && validFileFields.contains(entry.key)) {
+          print('Adding file for field: ${entry.key}');
+
+          // Create MultipartFile
+          final file = await MultipartFile.fromFile(
+            entry.value!.path,
+            filename: entry.value!.path.split('/').last,
+          );
+
+          // Add to FormData with the exact field name expected by backend
+          formData.files.add(MapEntry(entry.key, file));
         }
       }
 
-      var response = await _dio.post(uri,
-          data: formData,
-          options: Options(headers: {'Content-Type': 'multipart/form-data'}));
+      print('Sending request to: $baseUrl/api/reports/$id');
+
+      final response = await _dio.post(
+        '/api/reports/$id',
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response data: ${response.data}');
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to update report: ${response.data}');
+        final errorMessage = response.data?['message'] ?? 'Failed to update report';
+        throw Exception(errorMessage);
       }
+
+      // Successfully updated
+      print('Report updated successfully');
+    } on DioException catch (e) {
+      print('Dio error: ${e.message}');
+      print('Response error: ${e.response?.data}');
+
+      final errorMessage = e.response?.data?['message'] ?? 'Error updating report';
+      throw Exception(errorMessage);
     } catch (e) {
+      print('General error: $e');
       throw Exception('Error updating report: $e');
     }
   }
-
 
   Future<List<String>> getTrucks() async {
     try {
@@ -209,4 +246,80 @@ class ReportsService {
       throw Exception('Failed to fetch trucks: ${e.message}');
     }
   }
+  Future<void> downloadFile(String id, String field, String? originalName) async {
+    if (originalName == null || originalName.isEmpty) {
+      throw Exception('Invalid file name');
+    }
+
+    try {
+      final url = '$baseUrl/api/download/$id/$field';
+      print('Downloading from: $url');
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept': '*/*',
+          // Add any other required headers
+        },
+      );
+
+      print('Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final directory = await getTemporaryDirectory();
+        final filePath = '${directory.path}/$originalName';
+
+        print('Saving file to: $filePath');
+
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+
+        final result = await OpenFile.open(filePath);
+        if (result.type != ResultType.done) {
+          throw Exception('Failed to open file: ${result.message}');
+        }
+      } else {
+        // Parse error message from response if available
+        String errorMessage;
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['message'] ?? 'Unknown error occurred';
+        } catch (e) {
+          errorMessage = 'Error downloading file (${response.statusCode})';
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('Download error details: $e');
+      rethrow;
+    }
+  }
+
+
+
+
+//
+  // String _getFileExtension(http.Response response) {
+  //   // Try to get extension from content-disposition header
+  //   final contentDisposition = response.headers['content-disposition'];
+  //   if (contentDisposition != null && contentDisposition.contains('filename=')) {
+  //     final filename = contentDisposition.split('filename=').last.replaceAll('"', '');
+  //     final extension = p.extension(filename);
+  //     if (extension.isNotEmpty) return extension;
+  //   }
+  //
+  //   // Fallback: Try to determine from content-type
+  //   final contentType = response.headers['content-type'];
+  //   switch (contentType) {
+  //     case 'application/pdf':
+  //       return '.pdf';
+  //     case 'image/jpeg':
+  //       return '.jpg';
+  //     case 'image/png':
+  //       return '.png';
+  //     default:
+  //       return '';
+  //   }
+  // }
+
 }

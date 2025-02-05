@@ -58,14 +58,41 @@ class _ReportCardState extends State<ReportCard> {
     }
   }
 
-  Future<void> _downloadFile(String id, String field, String? originalName) async {
+  Future<void> _downloadFile(String id, String field, Map<String, dynamic>? fileData) async {
+    if (!mounted) return;
+
+    // Check if we have valid file data
+    if (fileData == null || fileData['originalname'] == null) {
+      _showError('File information is missing');
+      return;
+    }
+
+    setState(() => isLoading = true);
+
     try {
-      await _reportsService.downloadFile(id, field, originalName);
-      _showSuccess('File downloaded successfully');
+      print('Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
+
+      await _reportsService.downloadFile(
+        id,
+        field,
+        fileData['originalname'],
+      );
+
+      if (mounted) {
+        _showSuccess('File downloaded successfully');
+      }
     } catch (e) {
-      _showError('Error downloading file: $e');
+      print('Download failed: $e');
+      if (mounted) {
+        _showError(e.toString().replaceAll('Exception:', '').trim());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
+
 
   Future<void> _saveChanges() async {
     setState(() => isLoading = true);
@@ -151,6 +178,7 @@ class _ReportCardState extends State<ReportCard> {
     );
   }
 
+  // Update your _buildFileField method to handle download state
   Widget _buildFileField(String label, String field, Map<String, dynamic>? fileData) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -177,9 +205,21 @@ class _ReportCardState extends State<ReportCard> {
             )
                 : fileData != null && fileData['filepath'] != null
                 ? TextButton.icon(
-              onPressed: () => _downloadFile(widget.report.id!, field, fileData['originalname']),
-              icon: const Icon(Icons.file_download),
-              label: Text(fileData['originalname'] ?? 'Download'),
+              onPressed: isLoading
+                  ? null
+                  : () => _downloadFile(widget.report.id!, field, fileData),
+              icon: isLoading
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+                  : const Icon(Icons.file_download),
+              label: Text(
+                  isLoading
+                      ? 'Downloading...'
+                      : fileData['originalname'] ?? 'Download'
+              ),
             )
                 : const Text('No file', style: TextStyle(color: Colors.red)),
           ),
@@ -187,7 +227,6 @@ class _ReportCardState extends State<ReportCard> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     // Convert UTC DateTime to local
@@ -224,10 +263,10 @@ class _ReportCardState extends State<ReportCard> {
                 _buildInfoRow('To', widget.report.destinationTo),
                 _buildActualWeightField(),
                 _buildTransactionStatusDropdown(),
-                _buildFileField('Diesel Slip', 'dieselSlipImage', widget.report.dieselSlipImage),
-                _buildFileField('Loading Advice', 'loadingAdvice', widget.report.loadingAdvice),
-                _buildFileField('Invoice', 'invoiceCompany', widget.report.invoiceCompany),
-                _buildFileField('Weightment Slip', 'weightmentSlip', widget.report.weightmentSlip),
+                _buildFileField('Diesel Slip', 'DieselSlipImage', widget.report.DieselSlipImage),
+                _buildFileField('Loading Advice', 'LoadingAdvice', widget.report.LoadingAdvice),
+                _buildFileField('Invoice', 'InvoiceCompany', widget.report.InvoiceCompany),
+                _buildFileField('Weightment Slip', 'WeightmentSlip', widget.report.WeightmentSlip),
                 _buildActionButton(),
               ],
             ),

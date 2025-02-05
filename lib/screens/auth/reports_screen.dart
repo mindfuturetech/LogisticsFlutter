@@ -407,14 +407,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 _buildInfoRow('Diesel Amount', '₹${report.dieselAmount}'),
                 _buildInfoRow('TDS Rate', '${report.tdsRate}%'),
                 _buildInfoRow('Advance', '₹${report.advance}'),
-                if (report.dieselSlipImage?.isNotEmpty ?? false)
-                  _buildDocumentRow('Diesel Slip', report.dieselSlipImage!),
-                if (report.loadingAdvice?.isNotEmpty ?? false)
-                  _buildDocumentRow('Loading Advice', report.loadingAdvice!),
-                if (report.invoiceCompany?.isNotEmpty ?? false)
-                  _buildDocumentRow('Invoice', report.invoiceCompany!),
-                if (report.weightmentSlip?.isNotEmpty ?? false)
-                  _buildDocumentRow('Weightment Slip', report.weightmentSlip!),
+                if (report.DieselSlipImage?.isNotEmpty ?? false)
+                  _buildDocumentRow('Diesel Slip', report.DieselSlipImage!),
+                if (report.LoadingAdvice?.isNotEmpty ?? false)
+                  _buildDocumentRow('Loading Advice', report.LoadingAdvice!),
+                if (report.InvoiceCompany?.isNotEmpty ?? false)
+                  _buildDocumentRow('Invoice', report.InvoiceCompany!),
+                if (report.WeightmentSlip?.isNotEmpty ?? false)
+                  _buildDocumentRow('Weightment Slip', report.WeightmentSlip!),
               ],
             ),
           ),
