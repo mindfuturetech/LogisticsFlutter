@@ -44,7 +44,7 @@ class ApiSearchService {
         final Map<String, dynamic> tripData = decodedData["TripData"];
         return TripDetails.fromJson(tripData);
       }
-      // return null;
+      return null;
     } catch (e) {
       throw Exception('Failed to search user: $e');
     }

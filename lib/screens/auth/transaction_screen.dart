@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../config/model/truck_details_model.dart';
+import '../../config/services/search_service.dart';
 import '../../config/services/transaction_service.dart';
+import 'home_screen.dart';
 
 class TransactionsScreen extends StatefulWidget {
   @override
@@ -560,8 +562,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ],
                         ),
                         Divider(),
-                        _buildInfoRow('Trip ID', trip.tripId ?? '-'),
-                        _buildInfoRow('User Name', trip.username ?? '-'),
+                        _buildInfoRow('Trip ID', trip.tripId ?? '-',isTripId:true),
+                        _buildInfoRow('UserName', trip.username ?? '-'),
                         _buildInfoRow('Profile', trip.profile ?? '-'),
                         _buildInfoRow('Vendor', trip.vendor ?? '-'),
                         _buildInfoRow('Truck No.', trip.truckNumber ?? '-'),
@@ -604,7 +606,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value,{bool isTripId=false}) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -621,7 +623,56 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ),
           Expanded(
-            child: Text(
+            // child: Text(
+            //   value,
+            //   style: TextStyle(
+            //     fontWeight: FontWeight.w500,
+            //   ),
+            // ),
+
+            child: isTripId
+                ? InkWell(
+              onTap: () async {
+                try {
+                  final searchService = ApiSearchService();
+                  final tripDetails = await searchService.searchUserById(value);
+
+                  if (tripDetails != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TruckDetailsScreen(
+                          username: tripDetails.username,
+                          initialTripDetails: tripDetails,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('No trip details found for ID: $value'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error fetching trip details: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blue,
+                ),
+              ),
+            )
+                : Text(
               value,
               style: TextStyle(
                 fontWeight: FontWeight.w500,

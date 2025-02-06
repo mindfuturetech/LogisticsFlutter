@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/todaylist',
       onGenerateRoute: (settings) {
         // Add debug print to track navigation
-        print('Navigating to: ${settings.name}');
+        print('Navigating to: ${settings.name} with arguments: ${settings.arguments}');
 
         switch (settings.name) {
           case '/':
@@ -57,7 +57,18 @@ class MyApp extends StatelessWidget {
           case '/signup':
             return _buildPageRoute(SignUpScreen());
           case '/home':
-            return _buildPageRoute(TruckDetailsScreen());
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  TruckDetailsScreen(username: settings.arguments as String?),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                const transitionDuration = Duration(milliseconds: 300);
+                var tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                    .chain(CurveTween(curve: Curves.easeInOut));
+                var offsetAnimation = animation.drive(tween);
+                return SlideTransition(position: offsetAnimation, child: child);
+              },
+            );
+         
           case '/todaylist':
             return _buildPageRoute(TodaysListScreen());
           case '/reset-password':

@@ -154,5 +154,4 @@ class TripDetails {
     if (id != null) data['_id'] = id;
     return data;
   }
-
 }

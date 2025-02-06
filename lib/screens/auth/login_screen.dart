@@ -27,7 +27,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _authService.login(_username, _password);
-      Navigator.of(context).pushReplacementNamed('/home');
+      // Navigator.of(context).pushReplacementNamed('/home');
+      // Pass the username when navigating to home screen
+      print('Navigating to home with username: $_username');
+      Navigator.of(context).pushReplacementNamed('/home', arguments: _username);
+
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
