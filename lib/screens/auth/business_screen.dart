@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,7 +10,9 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../config/model/freight_model.dart';
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/reports_service.dart';
+import '../../config/services/search_service.dart';
 import '../../widget/custom_drawer.dart';
+import 'home_screen.dart';
 
 class BusinessScreen extends StatefulWidget {
   const BusinessScreen({Key? key}) : super(key: key);
@@ -21,6 +24,7 @@ class BusinessScreen extends StatefulWidget {
 class _BusinessScreenState extends State<BusinessScreen> {
   final ReportsService _reportsService = ReportsService();
   final TextEditingController _truckController = TextEditingController();
+
   DateTime? startDate;
   DateTime? endDate;
   List<TripDetails> reports = [];
@@ -30,6 +34,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
   String baseUrl = 'http:/10.0.2.2:5000/logistics';
   List<Freight> destinations = [];
   List<Freight> report = [];
+  // final SearchService _searchService = SearchService();
 
 
   final dio = Dio();
@@ -386,6 +391,32 @@ class _BusinessScreenState extends State<BusinessScreen> {
     verticalAlign: VerticalAlign.Center,
   );
 
+  // // Add the handler method for trip ID clicks
+  // Future<void> _handleTripIdClick(String tripId) async {
+  //   if (tripId.isEmpty) return;
+  //
+  //   setState(() {
+  //     isLoading = true;
+  //   });
+  //
+  //   try {
+  //     final tripDetails = await _searchService.searchByTripId(tripId);
+  //
+  //     // Navigate to home page with the trip details
+  //     if (!mounted) return;
+  //
+  //     context.go('/', extra: tripDetails);
+  //   } catch (e) {
+  //     if (!mounted) return;
+  //
+  //     _showErrorDialog('Failed to fetch trip details: $e');
+  //   } finally {
+  //     setState(() {
+  //       isLoading = false;
+  //     });
+  //   }
+  // }
+
 
   @override
   Widget build(BuildContext context) {
@@ -494,6 +525,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  _buildInfoRow('TripId', report.tripId,isTripId:true),
                                   _buildInfoRow('Driver', report.driverName),
                                   _buildInfoRow('Vendor', report.vendor),
                                   _buildInfoRow('From', report.destinationFrom),
@@ -585,7 +617,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String? value) {
+  Widget _buildInfoRow(String label, String? value,{bool isTripId=false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -601,7 +633,58 @@ class _BusinessScreenState extends State<BusinessScreen> {
             ),
           ),
           Expanded(
-            child: Text(value ?? 'N/A'),
+            child: isTripId
+                ? InkWell(
+              onTap: () async {
+                try {
+                  final searchService = ApiSearchService();
+                  final tripDetails = await searchService.searchUserById(value ?? '');
+
+                  if (!mounted) return;
+
+                  if (tripDetails != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TruckDetailsScreen(
+                          username: tripDetails.username ?? '',
+                          initialTripDetails: tripDetails,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('No trip details found for ID: $value'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error fetching trip details: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                value ?? 'N/A',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blue,
+                ),
+              ),
+            )
+                : Text(
+              value ?? 'N/A',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),

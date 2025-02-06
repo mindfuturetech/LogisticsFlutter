@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/reports_service.dart';
+import '../../config/services/search_service.dart';
+import 'home_screen.dart';
 
 
 class ReportsScreen extends StatefulWidget {
@@ -394,6 +396,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildInfoRow('TripId', report.tripId,isTripId:true),
                 _buildInfoRow('Driver', report.driverName),
                 _buildInfoRow('Vendor', report.vendor),
                 _buildInfoRow('From', report.destinationFrom),
@@ -423,7 +426,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String? value) {
+  Widget _buildInfoRow(String label, String? value,{bool isTripId=false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -437,7 +440,60 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
           Expanded(
-            child: Text(value ?? 'N/A'),
+            // child: Text(value ?? 'N/A'),
+            child: isTripId
+                ? InkWell(
+              onTap: () async {
+                try {
+                  final searchService = ApiSearchService();
+                  final tripDetails = await searchService.searchUserById(value ?? '');
+
+                  if (!mounted) return;
+
+                  if (tripDetails != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TruckDetailsScreen(
+                          username: tripDetails.username ?? '',
+                          initialTripDetails: tripDetails,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('No trip details found for ID: $value'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error fetching trip details: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                value ?? 'N/A',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blue,
+                  // decoration: TextDecoration.underline,
+                ),
+              ),
+            )
+                : Text(
+              value ?? 'N/A',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),

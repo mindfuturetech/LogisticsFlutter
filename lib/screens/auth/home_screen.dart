@@ -11,9 +11,9 @@ import '../../widget/custom_drawer.dart';
 
 class TruckDetailsScreen extends StatefulWidget {
   final dynamic username;
+  final TripDetails? initialTripDetails;
 
-
-  const TruckDetailsScreen({Key? key, this.username}) : super(key: key);
+  const TruckDetailsScreen({Key? key, this.username,this.initialTripDetails,}) : super(key: key);
 
   @override
   State<TruckDetailsScreen> createState() => _TruckDetailsScreenState();
@@ -68,7 +68,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   String? selectedTruckType;
   List<String> truckTypes = ['Type 1', 'Type 2', 'Type 3'];
   String? selectedTransactionStatus;
-  List<String> transactionStatuses = ['Open'];
+  List<String> transactionStatuses = ['Open','Acknowledged','Billed'];
 
 
 
@@ -87,6 +87,14 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
     //   }
     //   print("Received username: $_username");
     // });
+
+    // Add this to populate form with initial trip details if provided
+    if (widget.initialTripDetails != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _updateFormWithTruck(widget.initialTripDetails);
+      });
+    }
+
     username = widget.username?.toString() ?? "Guest";
     print("Received username in initState: ${widget.username}"); // Debugging
     fetchDestinationData();

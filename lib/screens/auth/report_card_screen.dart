@@ -4,15 +4,19 @@ import 'package:intl/intl.dart';
 import 'dart:io';
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/reports_service.dart';
+import '../../config/services/search_service.dart';
 
 class ReportCard extends StatefulWidget {
   final TripDetails report;
   final Function()? onRefresh;
+  // Added this new parameter
+  final Function(TripDetails?)? onTripFound;
 
   const ReportCard({
     Key? key,
     required this.report,
     this.onRefresh,
+    this.onTripFound,  // Add this
   }) : super(key: key);
 
   @override
@@ -21,6 +25,8 @@ class ReportCard extends StatefulWidget {
 
 class _ReportCardState extends State<ReportCard> {
   final ReportsService _reportsService = ReportsService();
+  // Add this line
+  final ApiSearchService _searchService = ApiSearchService();
   bool isEditing = false;
   bool isLoading = false;
   Map<String, File?> selectedFiles = {};
@@ -90,6 +96,26 @@ class _ReportCardState extends State<ReportCard> {
       setState(() => isLoading = false);
     }
   }
+
+  // Add this new method
+  Future<void> _handleTripSearch(String tripId) async {
+    setState(() => isLoading = true);
+    try {
+      final tripDetails = await _searchService.searchUserById(tripId);
+      if (tripDetails != null) {
+        if (widget.onTripFound != null  && widget.onTripFound != null) {
+          widget.onTripFound!(tripDetails);
+        }
+      } else {
+        _showError('Trip details not found');
+      }
+    } catch (e) {
+      _showError('Error searching trip: $e');
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
 
 
   Widget _buildTransactionStatusDropdown() {
@@ -210,7 +236,7 @@ class _ReportCardState extends State<ReportCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow('Trip ID', widget.report.tripId),
+                _buildInfoRow('Trip ID', widget.report.tripId,isTripId: true),
                 _buildInfoRow('Driver', widget.report.driverName),
                 _buildInfoRow('Vendor', widget.report.vendor),
                 _buildInfoRow('From', widget.report.destinationFrom),
@@ -273,13 +299,46 @@ class _ReportCardState extends State<ReportCard> {
     );
   }
 
-  Widget _buildInfoRow(String label, String? value) {
+  Widget _buildInfoRow(String label, String? value,{bool isTripId = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           SizedBox(width: 120, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
-          Expanded(child: Text(value ?? 'N/A')),
+          // Expanded(
+          //     child: isTripId
+          //         ? InkWell(
+          //       onTap: () => _handleTripSearch(value ?? ''),
+          //       child: Text(
+          //         value ?? 'N/A',
+          //         style: const TextStyle(
+          //           color: Colors.blue,
+          //           decoration: TextDecoration.underline,
+          //         ),
+          //       ),
+          //     )
+          //         : Text(value ?? 'N/A')
+          // ),
+
+          Expanded(
+            child: isTripId
+                ? GestureDetector( // Use GestureDetector for better touch response
+              onTap: () {
+                if (value != null) {
+                  _handleTripSearch(value);
+                }
+              },
+              child: Text(
+                value ?? 'N/A',
+                style: const TextStyle(
+                color: Colors.deepPurple,
+                  // decoration: TextDecoration.underline,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+                : Text(value ?? 'N/A'),
+          ),
         ],
       ),
     );

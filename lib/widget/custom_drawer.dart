@@ -108,7 +108,7 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.home,size: 30,color:Colors.blue),
+            leading: const Icon(Icons.home,size: 30),
             title: const Text('Upload Truck Details'),
             onTap: () {
               Navigator.pop(context);
@@ -116,7 +116,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.calendar_month),
+            leading: const Icon(Icons.calendar_month,size: 30),
             title: const Text("Today's List"),
             onTap: () {
               Navigator.pop(context);
@@ -124,7 +124,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.local_shipping),
+            leading: const Icon(Icons.local_shipping,size: 30),
             title: const Text('Freight Master'),
             onTap: () {
               Navigator.pop(context);
@@ -132,7 +132,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.directions_car),
+            leading: const Icon(Icons.directions_car,size: 30),
             title: const Text('Vehicle Master'),
             onTap: () {
               Navigator.pop(context);
@@ -140,7 +140,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.man),
+            leading: const Icon(Icons.man,size: 30),
             title: const Text('Vendor Master'),
             onTap: () {
               Navigator.pop(context);
@@ -148,7 +148,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.book),
+            leading: const Icon(Icons.book,size: 30),
             title: const Text('Reports'),
             onTap: () {
               Navigator.pop(context);
@@ -156,7 +156,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.money_outlined),
+            leading: const Icon(Icons.money_outlined,size: 30),
             title: const Text('Billing'),
             onTap: () {
               Navigator.pop(context);
@@ -164,7 +164,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.report),
+            leading: const Icon(Icons.report,size: 30),
             title: const Text('Transaction'),
             onTap: () {
               Navigator.pop(context);
@@ -172,7 +172,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.add_shopping_cart_sharp),
+            leading: const Icon(Icons.add_shopping_cart_sharp,size: 30),
             title: const Text('Business'),
             onTap: () {
               Navigator.pop(context);

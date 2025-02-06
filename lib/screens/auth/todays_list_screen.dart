@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:logistics/screens/auth/report_card_screen.dart';
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/reports_service.dart';
-
+import './home_screen.dart'; // Add this import
 
 class TodaysListScreen extends StatefulWidget {
   const TodaysListScreen({Key? key}) : super(key: key);
@@ -21,6 +21,21 @@ class _TodaysListScreenState extends State<TodaysListScreen> {
   void initState() {
     super.initState();
     _fetchTodayReports();
+  }
+
+  // Add this method to handle navigation to home screen
+  void _navigateToHomeScreen(TripDetails? tripDetails) {
+    if (tripDetails != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TruckDetailsScreen(
+            initialTripDetails: tripDetails,
+            username: tripDetails.username,
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _fetchTodayReports() async {
@@ -91,7 +106,10 @@ class _TodaysListScreenState extends State<TodaysListScreen> {
       itemCount: _reports.length,
       itemBuilder: (context, index) {
         final report = _reports[index];
-        return ReportCard(report: report);
+        return ReportCard(
+          report: report,
+          onTripFound: _navigateToHomeScreen, // Add this callback
+        );
       },
     );
   }

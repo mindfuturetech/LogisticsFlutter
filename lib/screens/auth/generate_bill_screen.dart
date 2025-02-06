@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../config/model/truck_details_model.dart';
+import '../../config/services/search_service.dart';
+import 'home_screen.dart';
 
 
 class GenerateBillScreen extends StatefulWidget {
@@ -167,6 +169,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
               print('Processing record: $x');
 
               return TripDetails(
+                tripId: x['trip_id']?.toString() ?? '',
                 id: x['_id']?.toString() ?? '',
                 truckNumber: x['truck_no']?.toString() ?? '',
                 weight: _parseDouble(x['weight']),
@@ -463,6 +466,59 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text('TripId: ', style: TextStyle(color: Colors.black)),
+                        InkWell(
+                          onTap: () async {
+                            try {
+                              final searchService = ApiSearchService();
+                              final tripDetails = await searchService.searchUserById(bill.tripId ?? '');
+
+                              if (!mounted) return;
+
+                              if (tripDetails != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TruckDetailsScreen(
+                                      username: tripDetails.username ?? '',
+                                      initialTripDetails: tripDetails,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('No trip details found for ID: ${bill.tripId}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (!mounted) return;
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error fetching trip details: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          child: Text(
+                            '${bill.tripId ?? 'N/A'}',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              // decoration: TextDecoration.underline,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ), // Regular text
+
+                    SizedBox(height: 4),
                     Row(
                       children: [
                         Expanded(
