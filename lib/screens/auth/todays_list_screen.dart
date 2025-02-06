@@ -8,9 +8,7 @@ import 'package:excel/excel.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
-import '../../config/model/truck_details_model.dart';
-import '../../config/services/reports_service.dart';
-import './home_screen.dart'; // Add this import
+import 'home_screen.dart';
 
 class TodaysListScreen extends StatefulWidget {
   const TodaysListScreen({Key? key}) : super(key: key);
@@ -38,7 +36,20 @@ class _TodaysListScreenState extends State<TodaysListScreen> {
       return dir.path;
     }
   }
-
+  // Add this method to handle navigation to home screen
+  void _navigateToHomeScreen(TripDetails? tripDetails) {
+    if (tripDetails != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TruckDetailsScreen(
+            initialTripDetails: tripDetails,
+            username: tripDetails.username,
+          ),
+        ),
+      );
+    }
+  }
   Future<void> downloadExcel() async {
     try {
       setState(() => _isExporting = true);
@@ -124,7 +135,7 @@ class _TodaysListScreenState extends State<TodaysListScreen> {
           report.toll?.toStringAsFixed(2) ?? '',   // From json: 'Toll'
           report.adblue?.toStringAsFixed(2) ?? '', // From json: 'Adblue'
           report.greasing?.toStringAsFixed(2) ?? '', // From json: 'Greasing'
-                            // From json: 'BillId'
+          // From json: 'BillId'
         ];
 
         // Add row data to excel
@@ -178,20 +189,6 @@ class _TodaysListScreenState extends State<TodaysListScreen> {
     }
   }
 
-  // Add this method to handle navigation to home screen
-  void _navigateToHomeScreen(TripDetails? tripDetails) {
-    if (tripDetails != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TruckDetailsScreen(
-            initialTripDetails: tripDetails,
-            username: tripDetails.username,
-          ),
-        ),
-      );
-    }    
-
   Future<void> _fetchTodayReports() async {
     try {
       final now = DateTime.now();
@@ -209,6 +206,7 @@ class _TodaysListScreenState extends State<TodaysListScreen> {
       setState(() => _isLoading = false);
     }
   }
+
 
   void _showError(String message) {
     if (!mounted) return;
@@ -228,6 +226,7 @@ class _TodaysListScreenState extends State<TodaysListScreen> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

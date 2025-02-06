@@ -31,7 +31,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   void initState() {
     super.initState();
     _loadDropdownData();
-    _fetchTodayReports();
+    // _fetchTodayReports();
   }
 
   @override
@@ -54,22 +54,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  Future<void> _fetchTodayReports() async {
-    setState(() => _isLoading = true);
-    try {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final reports = await _reportsService.getReports(
-        startDate: today,
-        endDate: today,
-      );
-      setState(() => _reports = reports);
-    } catch (e) {
-      _showError('Failed to fetch today\'s reports');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+  // Future<void> _fetchTodayReports() async {
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final now = DateTime.now();
+  //     final today = DateTime(now.year, now.month, now.day);
+  //     final reports = await _reportsService.getReports(
+  //       startDate: today,
+  //       endDate: today,
+  //     );
+  //     setState(() => _reports = reports);
+  //   } catch (e) {
+  //     _showError('Failed to fetch today\'s reports');
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
 
   Future<void> _fetchReports() async {
     if (_startDate == null && _endDate == null &&
@@ -224,10 +224,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   onPressed: _fetchReports,
                   child: const Text('Search'),
                 ),
-                ElevatedButton(
-                  onPressed: _fetchTodayReports,
-                  child: const Text('Today\'s List'),
-                ),
+                // ElevatedButton(
+                //   onPressed: _fetchTodayReports,
+                //   child: const Text('Today\'s List'),
+                // ),
               ],
             ),
           ],

@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/reports_service.dart';
+import '../../config/services/search_service.dart';
 
 class ReportCard extends StatefulWidget {
   final TripDetails report;
@@ -176,10 +177,6 @@ class _ReportCardState extends State<ReportCard> {
                   child: Text(status),
                 );
               }).toList(),
-              items: const [
-                DropdownMenuItem(value: 'Open', child: Text('Open')),
-                DropdownMenuItem(value: 'Acknowledged', child: Text('Acknowledged')),
-              ],
               onChanged: (String? newValue) {
                 if (newValue != null) {
                   setState(() {
