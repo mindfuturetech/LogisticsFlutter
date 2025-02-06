@@ -561,7 +561,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         ),
                         Divider(),
                         _buildInfoRow('Trip ID', trip.tripId ?? '-'),
-                        _buildInfoRow('UserName', trip.username ?? '-'),
+                        _buildInfoRow('User Name', trip.username ?? '-'),
                         _buildInfoRow('Profile', trip.profile ?? '-'),
                         _buildInfoRow('Vendor', trip.vendor ?? '-'),
                         _buildInfoRow('Truck No.', trip.truckNumber ?? '-'),

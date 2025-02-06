@@ -23,7 +23,7 @@ class TripDetails {
    double? toll;
    double? adblue;
    double? greasing;
-   String? billId;
+   // String? billId;
    Map<String, String?>? DieselSlipImage;
    Map<String, String?>? LoadingAdvice;
    Map<String, String?>? InvoiceCompany;
@@ -60,7 +60,7 @@ class TripDetails {
     this.toll,
     this.adblue,
     this.greasing,
-    this.billId,
+    // this.billId,
     this.DieselSlipImage,
     this.LoadingAdvice,
     this.InvoiceCompany,
@@ -76,8 +76,8 @@ class TripDetails {
   factory TripDetails.fromJson(Map<String, dynamic> json) {
     return TripDetails(
       tripId: json['TripID']?.toString(),
-      username: json['username']?.toString(),
-      profile: json['profile']?.toString(),
+      username: json['Username']?.toString(),
+      profile: json['Profile']?.toString(),
       truckNumber: json['TruckNumber']?.toString(),
       doNumber: json['DONumber']?.toString(),
       driverName: json['DriverName']?.toString(),
