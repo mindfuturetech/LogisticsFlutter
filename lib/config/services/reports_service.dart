@@ -11,7 +11,7 @@ import '../model/truck_details_model.dart';
 
 class ReportsService {
   final Dio _dio;
-  final String baseUrl = 'http://10.0.2.2:5000/logistics';
+  final String baseUrl = 'https://mindfuturetechsupport.com/logistics';
   // Constructor with flexible base URL
   ReportsService({String? baseUrl}) : _dio = Dio(BaseOptions(
     // Use platform-aware base URL
@@ -98,57 +98,25 @@ class ReportsService {
       throw Exception('An unexpected error occurred: $e');
     }
   }
-  Future<List<String>> getVendors() async {
-    try {
-      print('Fetching vendors...');
-      final response = await _dio.get('/api/vendors');
-      print('Vendors Response: ${response.data}');
-
-      if (response.data != null && response.data['vendorData'] != null) {
-        final List<dynamic> vendorData = response.data['vendorData'];
-        return vendorData
-            .map((vendor) => vendor['company_name'].toString())
-            .toList();
-      }
-      return [];
-    } on DioException catch (e) {
-      print('Vendor Fetch Error: ${e.message}');
-      throw Exception('Failed to fetch vendors: ${e.message}');
-    }
-  }
-// Method to download file
-//   Future<void> downloadFile(String id, String field, String? originalName) async {
-//     try {
-//       final response = await http.get(
-//         Uri.parse('$baseUrl/download/$id/$field'),
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//       );
-//
-//       if (response.statusCode == 200) {
-//         // Get the application documents directory
-//         final directory = await getApplicationDocumentsDirectory();
-//         final fileName = originalName ?? 'downloaded_file';
-//         final filePath = '${directory.path}/$fileName';
-//
-//         // Write the file
-//         final file = File(filePath);
-//         await file.writeAsBytes(response.bodyBytes);
-//
-//         // Open the file
-//         await OpenFile.open(filePath);
-//       } else {
-//         final errorData = json.decode(response.body);
-//         throw Exception(errorData['message'] ?? 'Failed to download file');
-//       }
-//     } catch (e) {
-//       throw Exception('Error downloading file: $e');
-//     }
-//   }
-
-  // Method to update trip details
+  // Future<List<String>> getVendors() async {
+  //   try {
+  //     print('Fetching vendors...');
+  //     final response = await _dio.get('/api/vendors');
+  //     print('Vendors Response: ${response.data}');
   //
+  //     if (response.data != null && response.data['vendorData'] != null) {
+  //       final List<dynamic> vendorData = response.data['vendorData'];
+  //       return vendorData
+  //           .map((vendor) => vendor['company_name'].toString())
+  //           .toList();
+  //     }
+  //     return [];
+  //   } on DioException catch (e) {
+  //     print('Vendor Fetch Error: ${e.message}');
+  //     throw Exception('Failed to fetch vendors: ${e.message}');
+  //   }
+  // }
+
 
   Future<void> updateReport(
       String id,
@@ -228,24 +196,24 @@ class ReportsService {
     }
   }
 
-  Future<List<String>> getTrucks() async {
-    try {
-      print('Fetching trucks...');
-      final response = await _dio.get('/api/trucks');
-      print('Trucks Response: ${response.data}');
-
-      if (response.data != null && response.data['truckData'] != null) {
-        final List<dynamic> truckData = response.data['truckData'];
-        return truckData
-            .map((truck) => truck['truck_no'].toString())
-            .toList();
-      }
-      return [];
-    } on DioException catch (e) {
-      print('Truck Fetch Error: ${e.message}');
-      throw Exception('Failed to fetch trucks: ${e.message}');
-    }
-  }
+  // Future<List<String>> getTrucks() async {
+  //   try {
+  //     print('Fetching trucks...');
+  //     final response = await _dio.get('/api/trucks');
+  //     print('Trucks Response: ${response.data}');
+  //
+  //     if (response.data != null && response.data['truckData'] != null) {
+  //       final List<dynamic> truckData = response.data['truckData'];
+  //       return truckData
+  //           .map((truck) => truck['truck_no'].toString())
+  //           .toList();
+  //     }
+  //     return [];
+  //   } on DioException catch (e) {
+  //     print('Truck Fetch Error: ${e.message}');
+  //     throw Exception('Failed to fetch trucks: ${e.message}');
+  //   }
+  // }
   Future<void> downloadFile(String id, String field, String? originalName) async {
     if (originalName == null || originalName.isEmpty) {
       throw Exception('Invalid file name');
@@ -296,30 +264,96 @@ class ReportsService {
   }
 
 
+  Future<List<String>> getVendors() async {
+    try {
+      print('Fetching vendors from: ${_dio.options.baseUrl}/api/vendors');
 
+      final response = await _dio.get(
+        '/api/vendors',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
 
-//
-  // String _getFileExtension(http.Response response) {
-  //   // Try to get extension from content-disposition header
-  //   final contentDisposition = response.headers['content-disposition'];
-  //   if (contentDisposition != null && contentDisposition.contains('filename=')) {
-  //     final filename = contentDisposition.split('filename=').last.replaceAll('"', '');
-  //     final extension = p.extension(filename);
-  //     if (extension.isNotEmpty) return extension;
-  //   }
-  //
-  //   // Fallback: Try to determine from content-type
-  //   final contentType = response.headers['content-type'];
-  //   switch (contentType) {
-  //     case 'application/pdf':
-  //       return '.pdf';
-  //     case 'image/jpeg':
-  //       return '.jpg';
-  //     case 'image/png':
-  //       return '.png';
-  //     default:
-  //       return '';
-  //   }
-  // }
+      print('Vendors Response: ${response.data}');
 
+      if (response.data != null && response.data['vendorData'] != null) {
+        final List<dynamic> vendors = response.data['vendorData'];
+        final List<String> vendorNames = vendors
+            .where((vendor) => vendor['company_name'] != null)
+            .map((vendor) => vendor['company_name'].toString())
+            .toList();
+
+        print('Parsed Vendor Names: $vendorNames');
+        return vendorNames;
+      }
+
+      print('No vendor data found in response');
+      return [];
+    } on DioException catch (e) {
+      print('Vendor Fetch Error: ${e.message}');
+      print('Error Type: ${e.type}');
+      print('Error Response: ${e.response?.data}');
+      print('Status Code: ${e.response?.statusCode}');
+
+      if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('Connection timeout. Please check your internet connection.');
+      }
+      throw Exception('Failed to fetch vendors: ${e.message}');
+    } catch (e) {
+      print('Unexpected error in getVendors: $e');
+      throw Exception('Failed to fetch vendors: $e');
+    }
+  }
+
+  Future<List<String>> getTrucks() async {
+    try {
+      print('Fetching trucks from: ${_dio.options.baseUrl}/api/trucks');
+
+      final response = await _dio.get(
+        '/api/trucks',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      print('Trucks Response: ${response.data}');
+
+      if (response.data != null && response.data['truckData'] != null) {
+        final List<dynamic> trucks = response.data['truckData'];
+        final List<String> truckNumbers = trucks
+            .where((truck) => truck['truck_no'] != null)
+            .map((truck) => truck['truck_no'].toString())
+            .toList();
+
+        print('Parsed Truck Numbers: $truckNumbers');
+        return truckNumbers;
+      }
+
+      print('No truck data found in response');
+      return [];
+    } on DioException catch (e) {
+      print('Truck Fetch Error: ${e.message}');
+      print('Error Type: ${e.type}');
+      print('Error Response: ${e.response?.data}');
+      print('Status Code: ${e.response?.statusCode}');
+
+      if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('Connection timeout. Please check your internet connection.');
+      }
+      throw Exception('Failed to fetch trucks: ${e.message}');
+    } catch (e) {
+      print('Unexpected error in getTrucks: $e');
+      throw Exception('Failed to fetch trucks: $e');
+    }
+  }
 }
+
+
+

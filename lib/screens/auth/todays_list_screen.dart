@@ -240,7 +240,7 @@ class _TodaysListScreenState extends State<TodaysListScreen> {
               child: Row(
                 children: [
                   const Text(
-                    'Download Today\'s List',
+                    'Download',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,

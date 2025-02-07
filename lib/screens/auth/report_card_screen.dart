@@ -163,7 +163,7 @@ class _ReportCardState extends State<ReportCard> {
           const SizedBox(
             width: 120,
             child: Text(
-                'Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                'Transaction Status', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
           Expanded(
             child: isEditing
@@ -274,16 +274,59 @@ class _ReportCardState extends State<ReportCard> {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ExpansionTile(
-        title: Text('${widget.report.truckNumber} - ${widget.report.doNumber}'),
+        title: Row(
+          children: [
+            const Text(
+              'Truck Number: ',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            Text(
+              '${widget.report.truckNumber}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              DateFormat('dd MMM yyyy').format(localDateTime),
+            Row(
+              children: [
+                const Text(
+                  'Date: ',
+                  style: TextStyle(
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  DateFormat('dd MMM yyyy').format(localDateTime),
+                  style: const TextStyle(
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
-            Text(
-              DateFormat('hh:mm a').format(localDateTime),
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            const SizedBox(height: 4), // Add some spacing between date and time
+            Row(
+              children: [
+                const Text(
+                  'Time: ',
+                  style: TextStyle(
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  DateFormat('hh:mm a').format(localDateTime),
+                  style: const TextStyle(
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -294,6 +337,10 @@ class _ReportCardState extends State<ReportCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildInfoRow('Trip ID', widget.report.tripId,isTripId: true),
+                _buildInfoRow(
+                    'DO Number',
+                    widget.report.doNumber?.toString()
+                ),
                 _buildInfoRow('User Name', widget.report.username),
                 _buildInfoRow('Profile', widget.report.profile),
                 _buildInfoRow('Driver', widget.report.driverName),
@@ -301,6 +348,49 @@ class _ReportCardState extends State<ReportCard> {
                 _buildInfoRow('From', widget.report.destinationFrom),
                 _buildInfoRow('To', widget.report.destinationTo),
                 _buildInfoRow('Bill ID', widget.report.billingId),
+                _buildInfoRow('Truck Type', widget.report.truckType),
+                _buildInfoRow(
+                    'Diesel Amount',
+                    widget.report.dieselAmount != null
+                        ? '₹${widget.report.dieselAmount.toString()}'
+                        : null
+                ),
+                _buildInfoRow(
+                    'Weight',
+                    widget.report.weight?.toString()
+                ),
+                _buildInfoRow(
+                    'Difference',
+                    widget.report.differenceInWeight?.toString()
+                ),
+                _buildInfoRow(
+                    'Freight',
+                    widget.report.freight?.toString()
+                ),
+                _buildInfoRow(
+                    'Diesel Slip Number',
+                    widget.report.dieselSlipNumber?.toString()
+                ),
+                _buildInfoRow(
+                    'TDS Rate',
+                    widget.report.tdsRate?.toString()
+                ),
+                _buildInfoRow(
+                    'Advance',
+                    widget.report.advance?.toString()
+                ),
+                _buildInfoRow(
+                    'Toll',
+                    widget.report.toll?.toString()
+                ),
+                _buildInfoRow(
+                    'Adblue',
+                    widget.report.adblue?.toString()
+                ),
+                _buildInfoRow(
+                    'Greasing',
+                    widget.report.greasing?.toString()
+                ),
                 _buildActualWeightField(),
                 _buildTransactionStatusDropdown(),
                 _buildFileField('Diesel Slip', 'DieselSlipImage',
