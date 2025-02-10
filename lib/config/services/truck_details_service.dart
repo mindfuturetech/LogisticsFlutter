@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 
 class LogisticsService {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://10.0.2.2:5000/logistics',
+    baseUrl: 'http://13.61.234.145/logistics',
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
   ));
@@ -80,7 +80,7 @@ class LogisticsService {
   Future<void> submitTruckDetails(TripDetails details) async {
     try {
       Response response= await _dio.post(
-          'http://10.0.2.2:5000/logistics/reports',
+          'http://13.61.234.145/logistics/reports',
           data: details.toJson()
       );
       if (response.statusCode == 200 || response.statusCode == 201) {

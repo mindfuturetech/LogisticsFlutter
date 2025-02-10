@@ -444,9 +444,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: isTripId
                 ? InkWell(
               onTap: () async {
+                if (value == null) return; // Early return if value is null
+
                 try {
                   final searchService = ApiSearchService();
-                  final tripDetails = await searchService.searchUserById(value ?? '');
+                  final tripDetails = await searchService.searchUserById(value); // Now value is non-null
 
                   if (!mounted) return;
 

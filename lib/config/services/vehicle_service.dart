@@ -44,7 +44,7 @@ class VehicleService {
 
       // Add basic vehicle details
       final fields = {
-        'truckNo': truckNo,
+        'truck_no': truckNo,  // Match the backend naming**
         'make': make,
         'companyOwner': companyOwner,
       };
