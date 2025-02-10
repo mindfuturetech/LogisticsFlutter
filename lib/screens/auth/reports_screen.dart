@@ -1,9 +1,12 @@
 import 'dart:io';
 
+import 'package:excel/excel.dart' as excel;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logistics/screens/auth/report_card_screen.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/reports_service.dart';
 import '../../config/services/search_service.dart';
@@ -47,9 +50,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String? transactionStatus;
   String? selectedStatus;
   TripDetails? selectedReport;
-  bool _isLoadingDropdowns = false;
-  String? _loadingError;
-  String? _errorMessage;
+  bool _isExporting = false;
 
   @override
   void initState() {
@@ -125,6 +126,160 @@ class _ReportsScreenState extends State<ReportsScreen> {
   //     _showError('Failed to load dropdown data: ${e.toString()}');
   //   }
   // }
+  Future<String> _getDownloadPath() async {
+    if (Platform.isAndroid) {
+      return '/storage/emulated/0/Download';
+    } else {
+      final dir = await getApplicationDocumentsDirectory();
+      return dir.path;
+    }
+  }
+
+
+
+// Then update your downloadExcel method:
+  Future<void> downloadExcel() async {
+    if (_isExporting) return;
+
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      // Get download path
+      final downloadPath = await _getDownloadPath();
+
+      // Create Excel workbook
+      var excelWorkbook = excel.Excel.createExcel();
+      var sheet = excelWorkbook['Sheet1'];
+
+      // Add headers
+      final headers = [
+        'Date',
+        'Time',
+        'Trip ID',
+        'Username',
+        'Profile',
+        'Truck Number',
+        'DO Number',
+        'Driver Name',
+        'Vendor',
+        'From',
+        'To',
+        'Truck Type',
+        'Transaction Status',
+        'Weight',
+        'Actual Weight',
+        'Difference in Weight',
+        'Freight',
+        'Diesel Amount',
+        'Diesel Slip Number',
+        'TDS Rate',
+        'Advance',
+        'Toll',
+        'AdBlue',
+        'Greasing',
+      ];
+
+      // Add headers to excel
+      for (var i = 0; i < headers.length; i++) {
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+            .value = headers[i];
+      }
+
+      // Add data
+      for (var i = 0; i < _reports.length; i++) {
+        var report = _reports[i];
+
+        // Format date to a readable string
+        String formattedDate = '';
+        String formattedTime = '';
+
+        if (report.createdAt != null) {
+          formattedDate = DateFormat('dd/MM/yyyy').format(report.createdAt!.toLocal());
+          formattedTime = DateFormat('HH:mm').format(report.createdAt!.toLocal());
+        }
+
+        // Row data in same order as headers
+        final rowData = [
+          formattedDate,
+          formattedTime,
+          report.tripId ?? '',
+          report.username ?? '',
+          report.profile ?? '',
+          report.truckNumber ?? '',
+          report.doNumber ?? '',
+          report.driverName ?? '',
+          report.vendor ?? '',
+          report.destinationFrom ?? '',
+          report.destinationTo ?? '',
+          report.truckType ?? '',
+          report.transactionStatus ?? '',
+          report.weight?.toStringAsFixed(2) ?? '',
+          report.actualWeight?.toStringAsFixed(2) ?? '',
+          report.differenceInWeight?.toStringAsFixed(2) ?? '',
+          report.freight?.toStringAsFixed(2) ?? '',
+          report.dieselAmount?.toStringAsFixed(2) ?? '',
+          report.dieselSlipNumber ?? '',
+          report.tdsRate?.toStringAsFixed(2) ?? '',
+          report.advance?.toStringAsFixed(2) ?? '',
+          report.toll?.toStringAsFixed(2) ?? '',
+          report.adblue?.toStringAsFixed(2) ?? '',
+          report.greasing?.toStringAsFixed(2) ?? '',
+        ];
+
+        // Add row data to excel
+        for (var j = 0; j < rowData.length; j++) {
+          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i + 1))
+              .value = rowData[j];
+        }
+      }
+
+      final dateStr = DateFormat('yyyy_MM_dd_HH_mm').format(DateTime.now());
+      final fileName = 'trip_reports_$dateStr.xlsx';
+      final filePath = '$downloadPath/$fileName';
+
+      // Save the file
+      final fileBytes = excelWorkbook.save();
+      if (fileBytes != null) {
+        final file = File(filePath);
+        await file.writeAsBytes(fileBytes);
+
+        // Try to open the file
+        await _openExcelFile(filePath);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('File saved: $fileName'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error saving file. Please try again.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isExporting = false;
+      });
+    }
+  }
+  Future<void> _openExcelFile(String filePath) async {
+    try {
+      await OpenFile.open(filePath);
+    } catch (e) {
+      // Silently handle opening errors
+      debugPrint('Error opening file: $e');
+    }
+  }
   Future<void> _loadDropdownData() async {
     setState(() => _isLoading = true);
 
@@ -256,6 +411,46 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Reports'),
+          actions: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Download',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: _isExporting
+                          ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : const Icon(Icons.download),
+                      onPressed: _isExporting ? null : downloadExcel,
+                      tooltip: 'Download Excel',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                setState(() => _isLoading = true);
+                _fetchReports();
+              },
+            ),
+          ],
         ),
         body: Column(
           children: [
@@ -288,11 +483,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     Row(
                       children: [
                         Expanded(child: _buildVendorInput()),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 14),
                         Expanded(child: _buildTruckInput()),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     ElevatedButton(
                       onPressed: _fetchReports,
                       child: const Text('Search'),
@@ -305,63 +500,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildReportsList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  Widget _buildFilters() {
-    return Card(
-      margin: const EdgeInsets.all(8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDateField(
-                    label: 'Start Date',
-                    value: _startDate,
-                    onChanged: (date) => setState(() => _startDate = date),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildDateField(
-                    label: 'End Date',
-                    value: _endDate,
-                    onChanged: (date) => setState(() => _endDate = date),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildVendorInput(),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildTruckInput(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: _fetchReports,
-                  child: const Text('Search'),
-                ),
-                // ElevatedButton(
-                //   onPressed: _fetchTodayReports,
-                //   child: const Text('Today\'s List'),
-                // ),
-              ],
             ),
           ],
         ),

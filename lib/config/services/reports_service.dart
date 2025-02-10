@@ -11,7 +11,7 @@ import '../model/truck_details_model.dart';
 
 class ReportsService {
   final Dio _dio;
-  final String baseUrl = 'https://mindfuturetechsupport.com/logistics';
+  final String baseUrl = 'http://10.0.2.2:5000/logistics';
   // Constructor with flexible base URL
   ReportsService({String? baseUrl}) : _dio = Dio(BaseOptions(
     // Use platform-aware base URL

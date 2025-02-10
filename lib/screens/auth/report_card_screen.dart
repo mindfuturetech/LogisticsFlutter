@@ -14,6 +14,7 @@ class ReportCard extends StatefulWidget {
   // Added this new parameter
   final Function(TripDetails?)? onTripFound;
 
+
   const ReportCard({
     Key? key,
     required this.report,
@@ -35,6 +36,7 @@ class _ReportCardState extends State<ReportCard> {
   double weight = 0.00;
   late TextEditingController actualWeightController;
   String? transactionStatus;
+
 
   @override
   void initState() {
@@ -278,7 +280,7 @@ class _ReportCardState extends State<ReportCard> {
           children: [
             const Text(
               'Truck Number: ',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -299,32 +301,24 @@ class _ReportCardState extends State<ReportCard> {
               children: [
                 const Text(
                   'Date: ',
-                  style: TextStyle(
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontSize: 14),
                 ),
                 Text(
                   DateFormat('dd MMM yyyy').format(localDateTime),
-                  style: const TextStyle(
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ],
             ),
-            const SizedBox(height: 4), // Add some spacing between date and time
+            const SizedBox(height: 4),
             Row(
               children: [
                 const Text(
                   'Time: ',
-                  style: TextStyle(
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontSize: 14),
                 ),
                 Text(
                   DateFormat('hh:mm a').format(localDateTime),
-                  style: const TextStyle(
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ],
             ),
@@ -336,73 +330,59 @@ class _ReportCardState extends State<ReportCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow('Trip ID', widget.report.tripId,isTripId: true),
-                _buildInfoRow(
-                    'DO Number',
-                    widget.report.doNumber?.toString()
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left Column
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInfoRow('Trip ID', widget.report.tripId, isTripId: true),
+                          _buildInfoRow('DO Number', widget.report.doNumber?.toString()),
+                          _buildInfoRow('User Name', widget.report.username),
+                          _buildInfoRow('Profile', widget.report.profile),
+                          _buildInfoRow('Driver', widget.report.driverName),
+                          _buildInfoRow('Vendor', widget.report.vendor),
+                          _buildInfoRow('From', widget.report.destinationFrom),
+                          _buildInfoRow('To', widget.report.destinationTo),
+                          _buildInfoRow('Bill ID', widget.report.billingId),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16), // Spacing between columns
+                    // Right Column
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInfoRow('Diesel Amount',
+                              widget.report.dieselAmount != null
+                                  ? '₹${widget.report.dieselAmount.toString()}'
+                                  : null),
+                          _buildInfoRow('Weight', widget.report.weight?.toString()),
+                          _buildInfoRow('Difference', widget.report.differenceInWeight?.toString()),
+                          _buildInfoRow('Freight', widget.report.freight?.toString()),
+                          _buildInfoRow('Diesel Slip Number', widget.report.dieselSlipNumber?.toString()),
+                          _buildInfoRow('TDS Rate', widget.report.tdsRate?.toString()),
+                          _buildInfoRow('Advance', widget.report.advance?.toString()),
+                          _buildInfoRow('Toll', widget.report.toll?.toString()),
+                          _buildInfoRow('Adblue', widget.report.adblue?.toString()),
+                          _buildInfoRow('Greasing', widget.report.greasing?.toString()),
+                          _buildInfoRow('Truck Type', widget.report.truckType),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                _buildInfoRow('User Name', widget.report.username),
-                _buildInfoRow('Profile', widget.report.profile),
-                _buildInfoRow('Driver', widget.report.driverName),
-                _buildInfoRow('Vendor', widget.report.vendor),
-                _buildInfoRow('From', widget.report.destinationFrom),
-                _buildInfoRow('To', widget.report.destinationTo),
-                _buildInfoRow('Bill ID', widget.report.billingId),
-                _buildInfoRow('Truck Type', widget.report.truckType),
-                _buildInfoRow(
-                    'Diesel Amount',
-                    widget.report.dieselAmount != null
-                        ? '₹${widget.report.dieselAmount.toString()}'
-                        : null
-                ),
-                _buildInfoRow(
-                    'Weight',
-                    widget.report.weight?.toString()
-                ),
-                _buildInfoRow(
-                    'Difference',
-                    widget.report.differenceInWeight?.toString()
-                ),
-                _buildInfoRow(
-                    'Freight',
-                    widget.report.freight?.toString()
-                ),
-                _buildInfoRow(
-                    'Diesel Slip Number',
-                    widget.report.dieselSlipNumber?.toString()
-                ),
-                _buildInfoRow(
-                    'TDS Rate',
-                    widget.report.tdsRate?.toString()
-                ),
-                _buildInfoRow(
-                    'Advance',
-                    widget.report.advance?.toString()
-                ),
-                _buildInfoRow(
-                    'Toll',
-                    widget.report.toll?.toString()
-                ),
-                _buildInfoRow(
-                    'Adblue',
-                    widget.report.adblue?.toString()
-                ),
-                _buildInfoRow(
-                    'Greasing',
-                    widget.report.greasing?.toString()
-                ),
+                const SizedBox(height: 16),
                 _buildActualWeightField(),
                 _buildTransactionStatusDropdown(),
-                _buildFileField('Diesel Slip', 'DieselSlipImage',
-                    widget.report.DieselSlipImage),
-                _buildFileField('Loading Advice', 'LoadingAdvice',
-                    widget.report.LoadingAdvice),
-                _buildFileField(
-                    'Invoice', 'InvoiceCompany', widget.report.InvoiceCompany),
-                _buildFileField('Weightment Slip', 'WeightmentSlip',
-                    widget.report.WeightmentSlip),
+                _buildFileField('Diesel Slip', 'DieselSlipImage', widget.report.DieselSlipImage),
+                _buildFileField('Loading Advice', 'LoadingAdvice', widget.report.LoadingAdvice),
+                _buildFileField('Invoice', 'InvoiceCompany', widget.report.InvoiceCompany),
+                _buildFileField('Weightment Slip', 'WeightmentSlip', widget.report.WeightmentSlip),
                 _buildActionButton(),
-                // Added download button here
               ],
             ),
           ),
