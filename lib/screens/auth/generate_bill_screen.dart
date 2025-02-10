@@ -124,13 +124,17 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
     });
 
     try {
+      print("Sending startDate: ${startDate?.toIso8601String()}");
+      print("Sending endDate: ${endDate?.toIso8601String()}");
+
       // Print request details for debugging
       final requestBody = {
-        'startDate': startDate?.toIso8601String(),
-        'endDate': endDate?.toIso8601String(),
+        'startDate': startDate != null ? DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(startDate!) : null,
+        'endDate': endDate != null ? DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(endDate!) : null,
         'vendor': selectedVendor,
         'truckNumber': selectedTruck,
       };
+
       print('Request body: ${json.encode(requestBody)}');
 
       final response = await http.post(
@@ -176,7 +180,6 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
                 actualWeight: _parseDouble(x['actual_weight']),
                 differenceInWeight: _parseDouble(x['difference_weight']),
                 freight: _parseDouble(x['freight']),
-                diesel: _parseDouble(x['diesel']),
                 dieselAmount: _parseDouble(x['diesel_amount']),
                 advance: _parseDouble(x['advance']),
                 driverName: x['driver_name']?.toString() ?? '',
@@ -288,28 +291,29 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   Widget _buildDateField({
     required String label,
     required DateTime? value,
-    required Function(DateTime?) onChanged,
+    required ValueChanged<DateTime?> onChanged,
   }) {
-    return TextFormField(
+    return TextField(
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
+        suffixIcon: const Icon(Icons.calendar_today),
       ),
       readOnly: true,
+      controller: TextEditingController(
+        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
+      ),
       onTap: () async {
         final date = await showDatePicker(
           context: context,
           initialDate: value ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
         );
         if (date != null) {
           onChanged(date);
         }
       },
-      controller: TextEditingController(
-        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
-      ),
     );
   }
 

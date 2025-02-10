@@ -23,11 +23,11 @@ class TripDetails {
    double? toll;
    double? adblue;
    double? greasing;
-   String? billId;
-   Map<String, String?>? dieselSlipImage;
-   Map<String, String?>? loadingAdvice;
-   Map<String, String?>? invoiceCompany;
-   Map<String, String?>? weightmentSlip;
+   // String? billId;
+   Map<String, String?>? DieselSlipImage;
+   Map<String, String?>? LoadingAdvice;
+   Map<String, String?>? InvoiceCompany;
+   Map<String, String?>? WeightmentSlip;
    String? id;
    DateTime? createdAt;
    DateTime? updatedAt;
@@ -60,11 +60,11 @@ class TripDetails {
     this.toll,
     this.adblue,
     this.greasing,
-    this.billId,
-    this.dieselSlipImage,
-    this.loadingAdvice,
-    this.invoiceCompany,
-    this.weightmentSlip,
+    // this.billId,
+    this.DieselSlipImage,
+    this.LoadingAdvice,
+    this.InvoiceCompany,
+    this.WeightmentSlip,
     this.id,
     this.createdAt,
     this.updatedAt,
@@ -76,8 +76,8 @@ class TripDetails {
   factory TripDetails.fromJson(Map<String, dynamic> json) {
     return TripDetails(
       tripId: json['TripID']?.toString(),
-      username: json['username']?.toString(),
-      profile: json['profile']?.toString(),
+      username: json['Username']?.toString(),
+      profile: json['Profile']?.toString(),
       truckNumber: json['TruckNumber']?.toString(),
       doNumber: json['DONumber']?.toString(),
       driverName: json['DriverName']?.toString(),
@@ -101,16 +101,16 @@ class TripDetails {
       rate: json['rate']?.toDouble(),
       billingId: json['BillId']?.toString(),
       amount: double.tryParse(json['amount']?.toString() ?? '0'),
-      dieselSlipImage: json['DieselSlipImage'] != null
+      DieselSlipImage: json['DieselSlipImage'] != null
           ? Map<String, String?>.from(json['DieselSlipImage'])
           : null,
-      loadingAdvice: json['LoadingAdvice'] != null
+      LoadingAdvice: json['LoadingAdvice'] != null
           ? Map<String, String?>.from(json['LoadingAdvice'])
           : null,
-      invoiceCompany: json['InvoiceCompany'] != null
+      InvoiceCompany: json['InvoiceCompany'] != null
           ? Map<String, String?>.from(json['InvoiceCompany'])
           : null,
-      weightmentSlip: json['WeightmentSlip'] != null
+      WeightmentSlip: json['WeightmentSlip'] != null
           ? Map<String, String?>.from(json['WeightmentSlip'])
           : null,
       id: json['_id'],
@@ -145,10 +145,10 @@ class TripDetails {
     if (adblue != null) data['Adblue'] = adblue;
     if (greasing != null) data['Greasing'] = greasing;
     if (billingId != null) data['BillId'] = billingId;
-    if (dieselSlipImage != null) data['DieselSlipImage'] = dieselSlipImage;
-    if (loadingAdvice != null) data['LoadingAdvice'] = loadingAdvice;
-    if (invoiceCompany != null) data['InvoiceCompany'] = invoiceCompany;
-    if (weightmentSlip != null) data['WeightmentSlip'] = weightmentSlip;
+    if (DieselSlipImage != null) data['DieselSlipImage'] = DieselSlipImage;
+    if (LoadingAdvice != null) data['LoadingAdvice'] = LoadingAdvice;
+    if (InvoiceCompany != null) data['InvoiceCompany'] = InvoiceCompany;
+    if (WeightmentSlip != null) data['WeightmentSlip'] = WeightmentSlip;
     if (rate != null) data['rate'] = rate;
     if (amount != null) data['amount'] = amount;
     if (id != null) data['_id'] = id;

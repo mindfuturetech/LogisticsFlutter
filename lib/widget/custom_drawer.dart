@@ -116,7 +116,7 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.calendar_month,size: 30),
+            leading: const Icon(Icons.calendar_month),
             title: const Text("Today's List"),
             onTap: () {
               Navigator.pop(context);
