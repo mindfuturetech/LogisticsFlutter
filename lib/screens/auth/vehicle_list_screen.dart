@@ -4,6 +4,24 @@ import 'package:file_picker/file_picker.dart';
 import '../../config/services/api_service.dart';
 import '../../config/services/vehicle_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart'; // Add this for date formatting
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
+import 'package:http/http.dart' as http;
+
+class ApiService {
+  static const String baseUrl = 'http://13.61.234.145/logistics';
+
+  // You can add other API-related methods here if needed
+  static String getDownloadUrl(String truckNo, String documentType) {
+    return '$baseUrl/download/$truckNo/$documentType';
+  }
+
+  // static String getUploadUrl(String truckNo, String documentType) {
+  //   return '$baseUrl/upload/$truckNo/$documentType';
+  // }
+}
 
 
 class VehicleScreen extends StatefulWidget {
@@ -19,8 +37,12 @@ class _VehicleScreenState extends State<VehicleScreen> {
   final TextEditingController _truckNoController = TextEditingController();
   final TextEditingController _makeController = TextEditingController();
   final TextEditingController _companyOwnerController = TextEditingController();
+  // Add search controller
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   List<Vehicle> vehicles = [];
+  List<Vehicle> filteredVehicles = []; // Add this for filtered results
   bool isLoading = true;
   bool isSubmitting = false;
 
@@ -48,6 +70,30 @@ class _VehicleScreenState extends State<VehicleScreen> {
   void initState() {
     super.initState();
     _loadVehicles();
+    // Add listener to search controller
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase().replaceAll(' ', '');
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Add this method to filter vehicles
+  void _filterVehicles() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      filteredVehicles = vehicles.where((vehicle) {
+        return vehicle.truckNo.toLowerCase().contains(query) ||
+            vehicle.make.toLowerCase().contains(query) ||
+            vehicle.companyOwner.toLowerCase().contains(query);
+      }).toList();
+    });
   }
 
   Future<void> _loadVehicles() async {
@@ -58,6 +104,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
       final data = await _vehicleService.getVehicles();
       setState(() {
         vehicles = data;
+        filteredVehicles = data; // Initialize filtered list with all vehicles
         isLoading = false;
       });
     } catch (e) {
@@ -136,6 +183,8 @@ class _VehicleScreenState extends State<VehicleScreen> {
             children: [
               _buildAddVehicleForm(),
               const SizedBox(height: 24),
+              _buildSearchBar(), // Add search bar
+              const SizedBox(height: 16),
               _buildVehicleList(),
             ],
           ),
@@ -224,27 +273,182 @@ class _VehicleScreenState extends State<VehicleScreen> {
     );
   }
 
+  // Add this new widget for search bar
+  // Widget _buildSearchBar() {
+  //   return Card(
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(8.0),
+  //       child: TextField(
+  //         controller: _searchController,
+  //         decoration: InputDecoration(
+  //           hintText: 'Search by truck number, make, or company owner',
+  //           prefixIcon: const Icon(Icons.search),
+  //           suffixIcon: _searchController.text.isNotEmpty
+  //               ? IconButton(
+  //             icon: const Icon(Icons.clear),
+  //             onPressed: () {
+  //               _searchController.clear();
+  //               _filterVehicles();
+  //             },
+  //           )
+  //               : null,
+  //           border: OutlineInputBorder(
+  //             borderRadius: BorderRadius.circular(8.0),
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search by truck number (e.g., MH12AA8888, 8888, MH12)',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              _searchController.clear();
+            },
+          )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        style: const TextStyle(fontSize: 16),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value.toLowerCase().replaceAll(' ', '');
+          });
+        },
+      ),
+    );
+  }
+
+
   Widget _buildVehicleList() {
+    // Filter vehicles based on truck number search
+    final filteredVehicles = _searchQuery.isEmpty
+        ? vehicles
+        : vehicles.where((vehicle) {
+      final truckNo = vehicle.truckNo.toLowerCase().replaceAll(' ', '');
+      // Check if the search query matches any part of the truck number
+      return truckNo.contains(_searchQuery);
+    }).toList();
+    // return Column(
+    //   crossAxisAlignment: CrossAxisAlignment.stretch,
+    //   children: [
+    //     Text(
+    //       'Registered Vehicles',
+    //       style: Theme.of(context).textTheme.titleLarge,
+    //     ),
+    //     const SizedBox(height: 16),
+    //     if (isLoading)
+    //       const Center(child: CircularProgressIndicator())
+    //     else if (filteredVehicles.isEmpty)
+    //       const Center(
+    //         child: Padding(
+    //           padding: EdgeInsets.all(16.0),
+    //           child: Text(
+    //             'No vehicles found matching your search criteria',
+    //             style: TextStyle(fontSize: 16, color: Colors.grey),
+    //           ),
+    //         ),
+    //       )
+    //     else
+    //       ListView.builder(
+    //         shrinkWrap: true,
+    //         physics: const NeverScrollableScrollPhysics(),
+    //         itemCount: vehicles.length,
+    //         itemBuilder: (context, index) {
+    //           return VehicleCard(
+    //             vehicle: vehicles[index],
+    //             vehicleService: _vehicleService,
+    //             displayNames: displayNames,
+    //             onDocumentUpdated: () {
+    //               // Reload the vehicles list when a document is updated
+    //               _loadVehicles();
+    //             },
+    //           );
+    //         },
+    //       ),
+    //   ],
+    // );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Registered Vehicles',
-          style: Theme.of(context).textTheme.titleLarge,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Registered Vehicles',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            if (_searchQuery.isNotEmpty)
+              Text(
+                'Found ${filteredVehicles.length} vehicles',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
         if (isLoading)
           const Center(child: CircularProgressIndicator())
+        else if (filteredVehicles.isEmpty && _searchQuery.isNotEmpty)
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.search_off,
+                  size: 48,
+                  color: Colors.grey,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No vehicles found with number "$_searchQuery"',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Try searching with full or partial truck number',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          )
         else
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: vehicles.length,
+            itemCount: filteredVehicles.length,
             itemBuilder: (context, index) {
+              final vehicle = filteredVehicles[index];
               return VehicleCard(
-                vehicle: vehicles[index],
+                vehicle: vehicle,
                 vehicleService: _vehicleService,
                 displayNames: displayNames,
+                onDocumentUpdated: () {
+                  _loadVehicles();
+                },
               );
             },
           ),
@@ -253,145 +457,484 @@ class _VehicleScreenState extends State<VehicleScreen> {
   }
 }
 
+// class VehicleCard extends StatelessWidget {
+//   final Vehicle vehicle;
+//   final VehicleService vehicleService;
+//   final Map<String, String> displayNames;
+//
+//   const VehicleCard({
+//     Key? key,
+//     required this.vehicle,
+//     required this.vehicleService,
+//     required this.displayNames,
+//   }) : super(key: key);
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Card(
+//       margin: const EdgeInsets.symmetric(vertical: 8),
+//       child: Padding(
+//         padding: const EdgeInsets.all(16),
+//         child: Column(
+//           crossAxisAlignment: CrossAxisAlignment.start,
+//           children: [
+//             _buildVehicleDetails(),
+//             const Divider(height: 32),
+//
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+
+
+  //new code start
+
 class VehicleCard extends StatelessWidget {
   final Vehicle vehicle;
   final VehicleService vehicleService;
   final Map<String, String> displayNames;
+  final Function() onDocumentUpdated;
 
   const VehicleCard({
     Key? key,
     required this.vehicle,
     required this.vehicleService,
     required this.displayNames,
+    required this.onDocumentUpdated,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildVehicleDetails(),
-            const Divider(height: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  vehicle.truckNo,
+                  // style: Theme.of(context).textTheme.titleLarge,
+                  style: TextStyle(
+                      fontSize: 18
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  vehicle.make,
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Table(
+            columnWidths: const {
+              0: FlexColumnWidth(2),
+              1: FlexColumnWidth(2),
+              2: FlexColumnWidth(1),
+            },
+            children: [
+              TableRow(
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                ),
+                children: [
+                  _buildTableHeader('Field'),
+                  _buildTableHeader('Validity (days left)'),
+                  _buildTableHeader('Action'),
+                ],
+              ),
+              ...vehicle.documents.entries.map((entry) {
+                final String documentType = entry.key;
+                final document = entry.value;
 
-          ],
+                return TableRow(
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey, width: 0.5),
+                    ),
+                  ),
+                  children: [
+                    _buildTableCell(displayNames[documentType] ?? documentType),
+                    _buildTableCell(
+                      _getValidityText(document),
+                      textColor: _getValidityColor(document),
+                    ),
+                    _buildActionCell(context, documentType, document),
+                  ],
+                );
+              }).toList(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getValidityText(DocumentInfo document) {
+    // if (document.endDate.isEmpty) return 'Not uploaded';
+    // try {
+    //   final endDate = DateTime.parse(document.endDate);
+    //   final daysLeft = endDate.difference(DateTime.now()).inDays;
+    //
+    //   // Format the date in a readable format
+    //   final formattedDate = DateFormat('yyyy-MM-dd').format(endDate);
+    //
+    //   if (daysLeft < 0) {
+    //     return '$formattedDate (Expired)';
+    //   } else {
+    //     return '$formattedDate ($daysLeft days left)';
+    //   }
+    // } catch (e) {
+    //   return 'Invalid date';
+    // }
+
+    if (document.daysLeft == null) return 'Not uploaded';
+
+    // print('Document: ${document.filePath}, Days Left: ${document.daysLeft}');
+
+    final int daysLeft = document.daysLeft!;
+
+    if (daysLeft < 0) {
+      return '${document.endDate} \n(Expired)';
+    } else {
+      return '${document.endDate} \n($daysLeft days left)';
+    }
+  }
+
+  Color _getValidityColor(DocumentInfo document) {
+    if (document.endDate.isEmpty) return Colors.grey;
+    final endDate = DateTime.parse(document.endDate);
+    final daysLeft = endDate
+        .difference(DateTime.now())
+        .inDays;
+    if (daysLeft <= 5) return Colors.red;
+    // if (daysLeft <= 30) return Colors.orange;
+    return Colors.black;
+  }
+
+
+  Widget _buildTableHeader(String text) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 
-  Widget _buildVehicleDetails() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildDetailRow('Truck Number:', vehicle.truckNo),
-        _buildDetailRow('Make:', vehicle.make),
-        _buildDetailRow('Company Owner:', vehicle.companyOwner),
-      ],
-    );
-  }
-
-  Widget _buildDocuments(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: vehicle.documents.entries.map((entry) {
-        if (entry.value != null) {
-          final bool isExpiring = (entry.value.daysLeft ?? 0) <= 5;
-          final bool isExpired = (entry.value.daysLeft ?? 0) <= 0;
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  displayNames[entry.key] ?? entry.key,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isExpiring ? Colors.red : null,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text('Valid: ${entry.value.startDate} to ${entry.value.endDate}'),
-                if (isExpiring)
-                  Text(
-                    '${entry.value.daysLeft} days left',
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    // Upload or Download button based on document status
-                    ElevatedButton(
-                      onPressed: () {
-                        if (isExpired || isExpiring) {
-                          // Trigger upload for expired or expiring documents
-                          _uploadDocument(context, entry.key);
-                        } else {
-                          // Trigger download for valid documents
-                          _downloadDocument(entry.key);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isExpired || isExpiring
-                            ? Colors.red
-                            : Colors.green,
-                      ),
-                      child: Text(
-                        isExpired || isExpiring
-                            ? 'Upload'
-                            : 'Download',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        }
-        return const SizedBox.shrink();
-      }).toList(),
-    );
-  }
-
-  void _uploadDocument(BuildContext context, String documentType) {
-    // Implement document upload logic
-    // This could open a file picker or navigate to a upload screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Uploading $documentType document')),
-    );
-  }
-
-  void _downloadDocument(String documentType) {
-    // Implement document download logic
-    // This could trigger a download from the server
-    print('Downloading $documentType document');
-  }
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildTableCell(String text, {Color? textColor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              color: Colors.grey,
-            ),
-          ),
-          Text(value ?? 'N/A'),
-        ],
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text,
+        style: TextStyle(color: textColor),
       ),
     );
   }
+
+  Widget _buildActionCell(BuildContext context, String documentType,
+      DocumentInfo document) {
+    final bool needsUpload = document.endDate.isEmpty ||
+        DateTime.parse(document.endDate).isBefore(DateTime.now());
+
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: IconButton(
+        icon: Icon(
+          needsUpload ? Icons.upload_file : Icons.download,
+          color: needsUpload ? Colors.red : Colors.green,
+        ),
+        onPressed: () =>
+        needsUpload
+            ? _showUploadDialog(context, documentType)
+            : _handleDownload(context, documentType),
+      ),
+    );
+  }
+
+  void _showUploadDialog(BuildContext context, String documentType) {
+    showDialog(
+      context: context,
+      builder: (context) =>
+          DocumentUploadDialog(
+            documentType: documentType,
+            displayName: displayNames[documentType] ?? documentType,
+            truckNo: vehicle.truckNo,
+            // onUpload: (String filePath, DateTime startDate, DateTime endDate) async {
+            //   try {
+            //     await vehicleService.uploadDocument(
+            //       vehicle.truckNo,
+            //       documentType,
+            //       filePath,
+            //       startDate.toIso8601String(),
+            //       endDate.toIso8601String(),
+            //     );
+            //     if (context.mounted) {
+            //       Navigator.of(context).pop();
+            //       ScaffoldMessenger.of(context).showSnackBar(
+            //         const SnackBar(
+            //             content: Text('Document uploaded successfully')),
+            //       );
+            //       onDocumentUpdated();
+            //     }
+            //   } catch (e) {
+            //     if (context.mounted) {
+            //       ScaffoldMessenger.of(context).showSnackBar(
+            //         SnackBar(content: Text('Error uploading document: $e')),
+            //       );
+            //     }
+            //   }
+            // },
+            onSuccess: () {
+              // Refresh the vehicle list
+              onDocumentUpdated();
+            },
+          ),
+    );
+  }
+
+  Future<void> _handleDownload(BuildContext context, String documentType) async {
+    try {
+      final String downloadUrl =
+          '${ApiService.baseUrl}/download/${vehicle.truckNo}/$documentType';
+      final response = await http.get(Uri.parse(downloadUrl));
+
+      if (response.statusCode == 200) {
+        // Get the directory to save the file
+        final Directory directory = await getApplicationDocumentsDirectory();
+        final String filePath = '${directory.path}/$documentType.pdf';
+
+        // Save the file
+        File file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+
+        // Notify the user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Document downloaded successfully: $filePath')),
+        );
+
+        // Open the file
+        OpenFile.open(filePath);
+      } else {
+        throw Exception('Failed to download document');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error downloading document: $e')),
+        );
+      }
+    }
+  }
+
 }
+
+
+class DocumentUploadDialog extends StatefulWidget {
+  final String documentType;
+  final String displayName;
+  final String truckNo;
+  final Function() onSuccess;
+  // final Function(String filePath, DateTime startDate, DateTime endDate) onUpload;
+
+  const DocumentUploadDialog({
+    Key? key,
+    required this.documentType,
+    required this.displayName,
+    // required this.onUpload,
+    required this.truckNo,
+    required this.onSuccess,
+  }) : super(key: key);
+
+  @override
+  _DocumentUploadDialogState createState() => _DocumentUploadDialogState();
+}
+
+class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
+  DateTime? startDate;
+  DateTime? endDate;
+  String? filePath;
+  bool isUploading = false;// added new
+
+  Future<void> _pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        allowMultiple: false,
+      );
+
+      if (result != null) {
+        setState(() {
+          filePath = result.files.first.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking file: $e')),
+        );
+      }
+    }
+  }
+
+  //added for upload
+  Future<void> _handleUploadSubmit() async {
+    if (startDate == null || endDate == null || filePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
+
+    setState(() {
+      isUploading = true;
+    });
+
+    var uri = Uri.parse('${ApiService.baseUrl}/upload');
+
+    try {
+      // Create multipart request
+      var request = http.MultipartRequest('POST', uri);
+
+      // Add text fields
+      request.fields['truck_no'] = widget.truckNo;
+      request.fields['field_name'] = widget.documentType;
+      request.fields['start_date'] = startDate!.toIso8601String();
+      request.fields['end_date'] = endDate!.toIso8601String();
+
+      // Add file
+      var file = await http.MultipartFile.fromPath('file', filePath!);
+      request.files.add(file);
+
+      // Set headers
+      request.headers['Content-Type'] = 'multipart/form-data';
+
+      // Send request
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('File uploaded successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop(); // Close dialog
+          widget.onSuccess(); // Refresh data
+        }
+      } else {
+        throw Exception('Failed to upload document. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading file. Please try again.\nError: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        print('Error uploading document: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUploading = false;
+        });
+      }
+    }
+  }
+
+
+  //end here
+
+  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    final DateTime now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now.subtract(const Duration(days: 365)),
+      lastDate: now.add(const Duration(days: 365 * 2)),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isStartDate) {
+          startDate = picked;
+        } else {
+          endDate = picked;
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Upload ${widget.displayName}'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(startDate == null
+                  ? 'Select Start Date'
+                  : 'Start Date: ${DateFormat('yyyy-MM-dd').format(startDate!)}'),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () => _selectDate(context, true),
+            ),
+            ListTile(
+              title: Text(endDate == null
+                  ? 'Select End Date'
+                  : 'End Date: ${DateFormat('yyyy-MM-dd').format(endDate!)}'),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () => _selectDate(context, false),
+            ),
+            ListTile(
+              title: Text(filePath == null ? 'Select File' : 'File: ${filePath!.split('/').last}'),
+              trailing: const Icon(Icons.attach_file),
+              onTap: _pickFile,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        if (isUploading)
+          const CircularProgressIndicator()
+        else
+          TextButton(
+            onPressed: (startDate != null && endDate != null && filePath != null)
+                ? _handleUploadSubmit
+                : null,
+            child: const Text('Upload'),
+          ),
+      ],
+    );
+  }
+}
+
+  //new code end
+
+
 
 class DocumentField extends StatelessWidget {
   final String title;

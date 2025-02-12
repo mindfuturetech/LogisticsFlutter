@@ -25,9 +25,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String noDataMessage = '';
 
 
-  final String baseUrl = 'http://10.0.2.2:5000/logistics/list-all-transactions';
-  final String updateUrl = 'http://10.0.2.2:5000/logistics/update-transactions';
-  final String generatePDFTransactionUrl = "http://10.0.2.2:5000/logistics/generate-pdf-transaction";
+  final String baseUrl = 'http://13.61.234.145/logistics/list-all-transactions';
+  final String updateUrl = 'http://13.61.234.145/logistics/update-transactions';
+  final String generatePDFTransactionUrl = "http://13.61.234.145/logistics/generate-pdf-transaction";
 
   @override
   void initState() {

@@ -39,7 +39,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   Future<void> _fetchCurrentBillId() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:5000/logistics/current-bill-id'),
+        Uri.parse('http://13.61.234.145/logistics/current-bill-id'),
       );
 
       if (response.statusCode == 200) {
@@ -55,7 +55,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   Future<void> _loadVendors() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:5000/logistics/list-vendor'),
+        Uri.parse('http://13.61.234.145/logistics/list-vendor'),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -76,7 +76,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   Future<void> _loadTrucks() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:5000/logistics/list-vehicle'),
+        Uri.parse('http://13.61.234.145/logistics/list-vehicle'),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -138,7 +138,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
       print('Request body: ${json.encode(requestBody)}');
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/logistics/list-billing'),
+        Uri.parse('http://13.61.234.145/logistics/list-billing'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(requestBody),
       );
@@ -259,7 +259,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
           .toList();
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/logistics/generate-pdf-bill'),
+        Uri.parse('http://13.61.234.145/logistics/generate-pdf-bill'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(selectedBillsData),
       );

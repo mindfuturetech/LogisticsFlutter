@@ -376,6 +376,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
+
+  // Add this method to handle navigation
+  void _navigateToHomeScreen(TripDetails? tripDetails) {
+    if (tripDetails != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TruckDetailsScreen(
+            initialTripDetails: tripDetails,
+            username: tripDetails.username,
+          ),
+        ),
+      );
+    }
+  }
+
   List<String> _getFilteredVendors() {
     final query = _vendorController.text.toLowerCase();
     return _vendors.where((vendor) =>
@@ -676,7 +692,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
       itemCount: _reports.length,
       itemBuilder: (context, index) {
         final report = _reports[index];
-        return ReportCard(report: report);
+        return ReportCard(
+          report: report,
+          onTripFound: _navigateToHomeScreen,  // Add this callback
+          onRefresh: () {
+            setState(() => _isLoading = true);
+            _fetchReports();
+          },
+        );
       },
     );
   }

@@ -9,11 +9,11 @@ import '../model/truck_details_model.dart';
 class TripDetailsService {
   static String get baseUrl {
     if (Platform.isAndroid && !kIsWeb) {
-      return 'http://10.0.2.2:5000';
+      return 'http://13.61.234.145';
     } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5000';
+      return 'http://13.61.234.145';
     }
-    return 'http://10.0.2.2:5000';
+    return 'http://13.61.234.145';
   }
 
   Future<List<TripDetails>> fetchTripDetails({String? startDate, String? endDate}) async {

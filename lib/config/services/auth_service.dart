@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://10.0.2.2:5000/logistics';
+  static const String baseUrl = 'http://13.61.234.145/logistics';
 
   // For maintaining auth state
   static Future<void> setAuthToken(bool value) async {
