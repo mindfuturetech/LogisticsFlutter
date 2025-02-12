@@ -563,10 +563,17 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submitForm,
-                child: const Text('Submit'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
+                  backgroundColor: const Color(0xFF5C2F95), // Purple shade
                 ),
+                child: const Text(
+                  "Submit",
+                  style: TextStyle(
+                    color: Colors.white, // Set text color to white
+                  ),
+                ),
+
               ),
             ],
           ),

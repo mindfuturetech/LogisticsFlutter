@@ -88,9 +88,6 @@ class MyApp extends StatelessWidget {
           case '/business':
           // Ensure BusinessScreen is properly instantiated
             return _buildPageRoute(const BusinessScreen());
-          case '/notification':
-          // Ensure BusinessScreen is properly instantiated
-            return _buildPageRoute(const BusinessScreen());
           default:
             return _buildPageRoute(const Scaffold(
               body: Center(child: Text('Route not found')),

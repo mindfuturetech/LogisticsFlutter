@@ -28,6 +28,7 @@ class ReportCard extends StatefulWidget {
 
 class _ReportCardState extends State<ReportCard> {
   final ReportsService _reportsService = ReportsService();
+
   // Add this line
   final ApiSearchService _searchService = ApiSearchService();
   bool isEditing = false;
@@ -141,7 +142,7 @@ class _ReportCardState extends State<ReportCard> {
     try {
       final tripDetails = await _searchService.searchUserById(tripId);
       if (tripDetails != null) {
-        if (widget.onTripFound != null  && widget.onTripFound != null) {
+        if (widget.onTripFound != null && widget.onTripFound != null) {
           widget.onTripFound!(tripDetails);
         }
       } else {
@@ -155,7 +156,6 @@ class _ReportCardState extends State<ReportCard> {
   }
 
 
-
   Widget _buildTransactionStatusDropdown() {
     final List<String> statusOptions = ['Open', 'Acknowledged'];
     return Padding(
@@ -165,7 +165,8 @@ class _ReportCardState extends State<ReportCard> {
           const SizedBox(
             width: 120,
             child: Text(
-                'Transaction Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                'Transaction Status',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
           Expanded(
             child: isEditing
@@ -269,127 +270,326 @@ class _ReportCardState extends State<ReportCard> {
     );
   }
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   final localDateTime = widget.report.createdAt!.toLocal();
+  //
+  //   return Card(
+  //     margin: const EdgeInsets.symmetric(vertical: 8),
+  //     child: ExpansionTile(
+  //       title: Row(
+  //         children: [
+  //           const Text(
+  //             'Truck Number: ',
+  //             style: TextStyle(
+  //               fontWeight: FontWeight.bold,
+  //               fontSize: 16,
+  //             ),
+  //           ),
+  //           Text(
+  //             '${widget.report.truckNumber}',
+  //             style: const TextStyle(
+  //               fontWeight: FontWeight.bold,
+  //               fontSize: 16,
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //       subtitle: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Row(
+  //             children: [
+  //               const Text(
+  //                 'Date: ',
+  //                 style: TextStyle(fontSize: 14),
+  //               ),
+  //               Text(
+  //                 DateFormat('dd MMM yyyy').format(localDateTime),
+  //                 style: const TextStyle(fontSize: 14),
+  //               ),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 4),
+  //           Row(
+  //             children: [
+  //               const Text(
+  //                 'Time: ',
+  //                 style: TextStyle(fontSize: 14),
+  //               ),
+  //               Text(
+  //                 DateFormat('hh:mm a').format(localDateTime),
+  //                 style: const TextStyle(fontSize: 14),
+  //               ),
+  //             ],
+  //           ),
+  //         ],
+  //       ),
+  //       children: [
+  //         Padding(
+  //           padding: const EdgeInsets.all(16),
+  //           child: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               Row(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   // Left Column
+  //                   Expanded(
+  //                     child: Column(
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         _buildInfoRow('Trip ID', widget.report.tripId, isTripId: true),
+  //                         _buildInfoRow('DO Number', widget.report.doNumber?.toString()),
+  //                         _buildInfoRow('User Name', widget.report.username),
+  //                         _buildInfoRow('Profile', widget.report.profile),
+  //                         _buildInfoRow('Driver', widget.report.driverName),
+  //                         _buildInfoRow('Vendor', widget.report.vendor),
+  //                         _buildInfoRow('From', widget.report.destinationFrom),
+  //                         _buildInfoRow('To', widget.report.destinationTo),
+  //                         _buildInfoRow('Bill ID', widget.report.billingId),
+  //                       ],
+  //                     ),
+  //                   ),
+  //                   const SizedBox(width: 16), // Spacing between columns
+  //                   // Right Column
+  //                   Expanded(
+  //                     child: Column(
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         _buildInfoRow('Diesel Amount',
+  //                             widget.report.dieselAmount != null
+  //                                 ? '₹${widget.report.dieselAmount.toString()}'
+  //                                 : null),
+  //                         _buildInfoRow('Weight', widget.report.weight?.toString()),
+  //                         _buildInfoRow('Difference', widget.report.differenceInWeight?.toString()),
+  //                         _buildInfoRow('Freight', widget.report.freight?.toString()),
+  //                         _buildInfoRow('Diesel Slip Number', widget.report.dieselSlipNumber?.toString()),
+  //                         _buildInfoRow('TDS Rate', widget.report.tdsRate?.toString()),
+  //                         _buildInfoRow('Advance', widget.report.advance?.toString()),
+  //                         _buildInfoRow('Toll', widget.report.toll?.toString()),
+  //                         _buildInfoRow('Adblue', widget.report.adblue?.toString()),
+  //                         _buildInfoRow('Greasing', widget.report.greasing?.toString()),
+  //                         _buildInfoRow('Truck Type', widget.report.truckType),
+  //                       ],
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //               const SizedBox(height: 16),
+  //               _buildActualWeightField(),
+  //               _buildTransactionStatusDropdown(),
+  //               _buildFileField('Diesel Slip', 'DieselSlipImage', widget.report.DieselSlipImage),
+  //               _buildFileField('Loading Advice', 'LoadingAdvice', widget.report.LoadingAdvice),
+  //               _buildFileField('Invoice', 'InvoiceCompany', widget.report.InvoiceCompany),
+  //               _buildFileField('Weightment Slip', 'WeightmentSlip', widget.report.WeightmentSlip),
+  //               _buildActionButton(),
+  //             ],
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
   @override
   Widget build(BuildContext context) {
     final localDateTime = widget.report.createdAt!.toLocal();
+     // Add selection logic if needed
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ExpansionTile(
-        title: Row(
-          children: [
-            const Text(
-              'Truck Number: ',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            Text(
-              '${widget.report.truckNumber}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Date: ',
-                  style: TextStyle(fontSize: 14),
-                ),
-                Text(
-                  DateFormat('dd MMM yyyy').format(localDateTime),
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Text(
-                  'Time: ',
-                  style: TextStyle(fontSize: 14),
-                ),
-                Text(
-                  DateFormat('hh:mm a').format(localDateTime),
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ],
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: Row(
+            children: [
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Left Column
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildInfoRow('Trip ID', widget.report.tripId, isTripId: true),
-                          _buildInfoRow('DO Number', widget.report.doNumber?.toString()),
-                          _buildInfoRow('User Name', widget.report.username),
-                          _buildInfoRow('Profile', widget.report.profile),
-                          _buildInfoRow('Driver', widget.report.driverName),
-                          _buildInfoRow('Vendor', widget.report.vendor),
-                          _buildInfoRow('From', widget.report.destinationFrom),
-                          _buildInfoRow('To', widget.report.destinationTo),
-                          _buildInfoRow('Bill ID', widget.report.billingId),
-                        ],
+                    Text(
+                      'Truck Number: ${widget.report.truckNumber ?? 'N/A'}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                    const SizedBox(width: 16), // Spacing between columns
-                    // Right Column
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildInfoRow('Diesel Amount',
-                              widget.report.dieselAmount != null
-                                  ? '₹${widget.report.dieselAmount.toString()}'
-                                  : null),
-                          _buildInfoRow('Weight', widget.report.weight?.toString()),
-                          _buildInfoRow('Difference', widget.report.differenceInWeight?.toString()),
-                          _buildInfoRow('Freight', widget.report.freight?.toString()),
-                          _buildInfoRow('Diesel Slip Number', widget.report.dieselSlipNumber?.toString()),
-                          _buildInfoRow('TDS Rate', widget.report.tdsRate?.toString()),
-                          _buildInfoRow('Advance', widget.report.advance?.toString()),
-                          _buildInfoRow('Toll', widget.report.toll?.toString()),
-                          _buildInfoRow('Adblue', widget.report.adblue?.toString()),
-                          _buildInfoRow('Greasing', widget.report.greasing?.toString()),
-                          _buildInfoRow('Truck Type', widget.report.truckType),
-                        ],
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormat('dd MMM yyyy').format(localDateTime),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(width: 16),
+                        const Icon(Icons.access_time, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormat('hh:mm a').format(localDateTime),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                _buildActualWeightField(),
-                _buildTransactionStatusDropdown(),
-                _buildFileField('Diesel Slip', 'DieselSlipImage', widget.report.DieselSlipImage),
-                _buildFileField('Loading Advice', 'LoadingAdvice', widget.report.LoadingAdvice),
-                _buildFileField('Invoice', 'InvoiceCompany', widget.report.InvoiceCompany),
-                _buildFileField('Weightment Slip', 'WeightmentSlip', widget.report.WeightmentSlip),
-                _buildActionButton(),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(4),
+                  bottomRight: Radius.circular(4),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTripInformation(),
+                  const Divider(height: 32),
+                  _buildFinancialInformation(),
+                  const SizedBox(height: 16),
+                  _buildActualWeightField(),
+                  _buildTransactionStatusDropdown(),
+                  _buildDocumentSection(),
+                  _buildActionButton(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _buildTripInformation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Trip Information',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 3,
+          children: [
+            _buildInfoRow('Trip ID', widget.report.tripId, isTripId: true),
+            _buildInfoRow('DO Number', widget.report.doNumber?.toString()),
+            _buildInfoRow('User Name', widget.report.username),
+            _buildInfoRow('Profile', widget.report.profile),
+            _buildInfoRow('Driver', widget.report.driverName),
+            _buildInfoRow('Vendor', widget.report.vendor),
+            _buildInfoRow('From', widget.report.destinationFrom),
+            _buildInfoRow('To', widget.report.destinationTo),
+            _buildInfoRow('Bill ID', widget.report.billingId),
+            _buildInfoRow('Truck Type', widget.report.truckType),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinancialInformation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Financial Details',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 3,
+          children: [
+            _buildInfoRow('Diesel Amount',
+                widget.report.dieselAmount != null
+                    ? '₹${widget.report.dieselAmount?.toStringAsFixed(2)}'
+                    : null),
+            _buildInfoRow('Weight',
+                widget.report.weight != null
+                    ? '${widget.report.weight?.toStringAsFixed(2)} tons'
+                    : null),
+            _buildInfoRow('Difference',
+                widget.report.differenceInWeight != null
+                    ? '${widget.report.differenceInWeight?.toStringAsFixed(
+                    2)} tons'
+                    : null),
+            _buildInfoRow('Freight',
+                widget.report.freight != null
+                    ? '₹${widget.report.freight?.toStringAsFixed(2)}'
+                    : null),
+            _buildInfoRow('Diesel Slip Number',
+                widget.report.dieselSlipNumber?.toString()),
+            _buildInfoRow('TDS Rate', widget.report.tdsRate?.toString()),
+            _buildInfoRow('Advance',
+                widget.report.advance != null
+                    ? '₹${widget.report.advance?.toStringAsFixed(2)}'
+                    : null),
+            _buildInfoRow('Toll',
+                widget.report.toll != null
+                    ? '₹${widget.report.toll?.toStringAsFixed(2)}'
+                    : null),
+            _buildInfoRow('Adblue',
+                widget.report.adblue != null
+                    ? '₹${widget.report.adblue?.toStringAsFixed(2)}'
+                    : null),
+            _buildInfoRow('Greasing',
+                widget.report.greasing != null
+                    ? '₹${widget.report.greasing?.toStringAsFixed(2)}'
+                    : null),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDocumentSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Documents',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildFileField(
+            'Diesel Slip', 'DieselSlipImage', widget.report.DieselSlipImage),
+        _buildFileField(
+            'Loading Advice', 'LoadingAdvice', widget.report.LoadingAdvice),
+        _buildFileField(
+            'Invoice', 'InvoiceCompany', widget.report.InvoiceCompany),
+        _buildFileField(
+            'Weightment Slip', 'WeightmentSlip', widget.report.WeightmentSlip),
+      ],
+    );
+  }
+
   Widget _buildActualWeightField() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -435,48 +635,104 @@ class _ReportCardState extends State<ReportCard> {
     );
   }
 
-  Widget _buildInfoRow(String label, String? value,{bool isTripId = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+//   Widget _buildInfoRow(String label, String? value,{bool isTripId = false}) {
+//     return Padding(
+//       padding: const EdgeInsets.symmetric(vertical: 4),
+//       child: Row(
+//         children: [
+//           SizedBox(width: 120, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
+//           // Expanded(
+//           //     child: isTripId
+//           //         ? InkWell(
+//           //       onTap: () => _handleTripSearch(value ?? ''),
+//           //       child: Text(
+//           //         value ?? 'N/A',
+//           //         style: const TextStyle(
+//           //           color: Colors.blue,
+//           //           decoration: TextDecoration.underline,
+//           //         ),
+//           //       ),
+//           //     )
+//           //         : Text(value ?? 'N/A')
+//           // ),
+//
+//           Expanded(
+//             child: isTripId
+//                 ? GestureDetector( // Use GestureDetector for better touch response
+//               onTap: () {
+//                 if (value != null) {
+//                   _handleTripSearch(value);
+//                 }
+//               },
+//               child: Text(
+//                 value ?? 'N/A',
+//                 style: const TextStyle(
+//                 color: Colors.deepPurple,
+//                   // decoration: TextDecoration.underline,
+//                   fontWeight: FontWeight.bold,
+//                 ),
+//               ),
+//             )
+//                 : Text(value ?? 'N/A'),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+  Widget _buildInfoRow(String label, String? value, {bool isTripId = false}) {
+    if (isTripId) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
-          // Expanded(
-          //     child: isTripId
-          //         ? InkWell(
-          //       onTap: () => _handleTripSearch(value ?? ''),
-          //       child: Text(
-          //         value ?? 'N/A',
-          //         style: const TextStyle(
-          //           color: Colors.blue,
-          //           decoration: TextDecoration.underline,
-          //         ),
-          //       ),
-          //     )
-          //         : Text(value ?? 'N/A')
-          // ),
-
-          Expanded(
-            child: isTripId
-                ? GestureDetector( // Use GestureDetector for better touch response
-              onTap: () {
-                if (value != null) {
-                  _handleTripSearch(value);
-                }
-              },
-              child: Text(
-                value ?? 'N/A',
-                style: const TextStyle(
-                color: Colors.deepPurple,
-                  // decoration: TextDecoration.underline,
-                  fontWeight: FontWeight.bold,
-                ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: () {
+              if (value != null) {
+                _handleTripSearch(value);
+              }
+            },
+            child: Text(
+              value ?? 'N/A',
+              style: const TextStyle(
+                color: Colors.blue,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
-            )
-                : Text(value ?? 'N/A'),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
-      ),
-    );
+      );
+    } else {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value ?? 'N/A',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      );
+    }
   }
 }

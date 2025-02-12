@@ -490,7 +490,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     const SizedBox(height: 14),
                     ElevatedButton(
                       onPressed: _fetchReports,
-                      child: const Text('Search'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        backgroundColor: const Color(0xFF5C2F95), // Purple shade
+                      ),
+                      child: const Text(
+                        "Submit",
+                        style: TextStyle(
+                          color: Colors.white, // Set text color to white
+                        ),
+                      ),
                     ),
                   ],
                 ),
