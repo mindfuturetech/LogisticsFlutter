@@ -551,16 +551,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       DateFormat('HH:mm').format(trip.createdAt ?? DateTime.now()),
                                       style: TextStyle(fontSize: 14),
                                     ),
-                                    SizedBox(width: 16),
-                                    Text(
-                                      'Amount: ₹${trip.amount ?? "0.00"}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    ),
                                   ],
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Amount: ₹${trip.amount ?? "0.00"}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: Theme.of(context).primaryColor,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ],
                             ),
