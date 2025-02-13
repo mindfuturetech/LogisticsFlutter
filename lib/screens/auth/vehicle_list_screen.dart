@@ -258,6 +258,12 @@ class _VehicleScreenState extends State<VehicleScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: isSubmitting ? null : _submitForm,
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: const Color(0xFF5C2F95), // Purple background
+                   foregroundColor: Colors.white, // White text and icon color
+                   disabledBackgroundColor: Colors.grey, // Grey background when disabled
+                   disabledForegroundColor: Colors.white70, // Light white text/icon when disabled
+                 ),
                 child: isSubmitting
                     ? const SizedBox(
                   height: 20,
@@ -1013,8 +1019,21 @@ class DocumentField extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _pickFile,
-                    icon: const Icon(Icons.attach_file),
+                    icon: const Icon(Icons.attach_file,),
                     label: const Text('Upload Document'),
+                    style: ElevatedButton.styleFrom(
+                    //   backgroundColor: const Color(0xFFF8F8F8), // Off-white background
+                    //   foregroundColor: Colors.black, // Black text & icon
+                      side: const BorderSide(color: Colors.black45, width: 1), // Black border
+                    //   padding: const EdgeInsets.symmetric(vertical: 12), // Adjust padding
+                    //   textStyle: const TextStyle(
+                    //     fontSize: 16,
+                    //     fontWeight: FontWeight.bold,
+                    //   ),
+                    //   shape: RoundedRectangleBorder(
+                    //     borderRadius: BorderRadius.circular(8), // Rounded corners
+                    //   ),
+                    ),
                   ),
                 ),
                 if (data['filePath']?.isNotEmpty ?? false) ...[

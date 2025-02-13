@@ -47,7 +47,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   TextEditingController destinationFromController = TextEditingController();
   TextEditingController destinationToController = TextEditingController();
   final _freightController = TextEditingController();
-  final _dieselController = TextEditingController();
+  // final _dieselController = TextEditingController();
   TextEditingController weightController = TextEditingController();
   final _dieselAmountController = TextEditingController();
   final _dieselSlipNumberController = TextEditingController();
@@ -125,7 +125,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
     destinationFromController.dispose();
     destinationToController.dispose();
     _freightController.dispose();
-    _dieselController.dispose();
+    // _dieselController.dispose();
     weightController.dispose();
     _dieselAmountController.dispose();
     _dieselSlipNumberController.dispose();
@@ -256,7 +256,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
         destinationToController.text = truck.destinationTo ?? '';
         weightController.text = truck.weight?.toString() ?? '';
         _freightController.text = truck.freight?.toString() ?? '';
-        _dieselController.text = truck.diesel?.toString() ?? '';
+        // _dieselController.text = truck.diesel?.toString() ?? '';
         _dieselAmountController.text = truck.dieselAmount?.toString() ?? '';
         _dieselSlipNumberController.text = truck.dieselSlipNumber ?? '';
         _tdsRateController.text = truck.tdsRate?.toString() ?? '';
@@ -316,7 +316,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
       destinationToController.clear();
       weightController.clear();
       _freightController.clear();
-      _dieselController.clear();
+      // _dieselController.clear();
       _dieselAmountController.clear();
       _dieselSlipNumberController.clear();
       _tdsRateController.clear();
@@ -399,6 +399,14 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_editingId != null) ...[
+                _buildTextFormField(
+                  controller: TextEditingController(text: _editingId),
+                  label: 'Trip ID',
+                  readOnly: true,
+                ),
+                const SizedBox(height: 16),
+              ],
               _buildAutocompleteField(
                 controller: truckNumberController,
                 label: 'Truck Number',
@@ -456,7 +464,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
                     ? (value) {} // Provide an empty function instead of null
                     : (value) {
                   setState(() {
-                    selectedTransactionStatus = value!;
+                    selectedTransactionStatus =  value ?? 'Open';
                   });
                 },
               ),
@@ -523,11 +531,11 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
                 readOnly: true,
           ),
               SizedBox(height: 16),
-              _buildTextFormField(
-                controller: _dieselController,
-                label: 'Diesel',
-                keyboardType: TextInputType.number,
-              ),
+              // _buildTextFormField(
+              //   controller: _dieselController,
+              //   label: 'Diesel',
+              //   keyboardType: TextInputType.number,
+              // ),
               _buildTextFormField(
                 controller: _dieselAmountController,
                 label: 'Diesel Amount',
@@ -792,7 +800,8 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
           username:username,
           profile:username,
           doNumber: _doNumberController.text,
-          transactionStatus:selectedTransactionStatus,
+          // transactionStatus:selectedTransactionStatus,
+          transactionStatus: selectedTransactionStatus ?? 'Open',
           driverName: _driverNameController.text,
           vendor: vendorController.text,
           destinationFrom: destinationFromController.text,
@@ -800,7 +809,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
           truckType:selectedTruckType,
           weight: double.tryParse(weightController.text) ?? 0,
           freight: double.tryParse(_freightController.text) ?? 0,
-          diesel: double.tryParse(_dieselController.text) ?? 0,
+          // diesel: double.tryParse(_dieselController.text) ?? 0,
           dieselAmount: double.tryParse(_dieselAmountController.text) ?? 0,
           dieselSlipNumber: _dieselSlipNumberController.text,
           tdsRate: double.tryParse(_tdsRateController.text) ?? 0,
@@ -869,7 +878,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
         destinationToController.clear();
         weightController.clear();
         _freightController.clear();
-        _dieselController.clear();
+        // _dieselController.clear();
         _dieselAmountController.clear();
         _dieselSlipNumberController.clear();
         _tdsRateController.clear();

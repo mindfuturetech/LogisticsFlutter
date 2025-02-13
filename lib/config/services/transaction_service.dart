@@ -123,9 +123,9 @@ class TripDetailsService {
     return {
       '_id': json['_id'], // Changed to handle ID as string
       'TripID': json['trip_id']?.toString(), // Changed to handle ID as string
-      'username': json['username']?.toString(),
+      'Username': json['username']?.toString(),
       'TruckNumber': json['truck_no']?.toString(),
-      'profile': json['profile']?.toString(),
+      'Profile': json['profile']?.toString(),
       'Vendor': json['vendor']?.toString(),
       'DestinationTo': json['destination_to']?.toString(),
       'Weight': _safeParseDouble(json['weight']),

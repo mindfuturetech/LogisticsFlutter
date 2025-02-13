@@ -241,6 +241,8 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
               return TripDetails(
                 tripId: x['trip_id']?.toString() ?? '',
                 id: x['_id']?.toString() ?? '',
+                username: x['username']?.toString() ?? '',
+                profile: x['profile']?.toString() ?? '',
                 truckNumber: x['truck_no']?.toString() ?? '',
                 weight: _parseDouble(x['weight']),
                 actualWeight: _parseDouble(x['actual_weight']),
