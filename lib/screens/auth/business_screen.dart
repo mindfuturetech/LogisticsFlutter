@@ -23,14 +23,16 @@ import 'package:path/path.dart' as path;
 
 class BusinessScreen extends StatefulWidget {
   final TripDetails? tripDetails;
+  final Freight? freight;
   const BusinessScreen({
     Key? key,
-    this.tripDetails,  // Add this parameter
+    this.tripDetails, this.freight, this.selectedFreight,  // Add this parameter
   }) : super(key: key);
 
 
   @override
   State<BusinessScreen> createState() => _BusinessScreenState();
+   final Freight? selectedFreight;
 }
 
 class _BusinessScreenState extends State<BusinessScreen> {
@@ -45,7 +47,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
   double grandTotal = 0.0;
   String baseUrl = 'http://13.61.234.145/logistics';
   List<Freight> destinations = [];
-  List<Freight> report = [];
+  List<Freight> model = [];
   // final SearchService _searchService = SearchService();
   bool _isExporting = false;
   Map<String, File?> selectedFiles = {};
@@ -84,8 +86,12 @@ class _BusinessScreenState extends State<BusinessScreen> {
   }
 
   void _calculateGrandTotal() {
-    grandTotal = reports.fold(0.0, (sum, report) => sum + calculateTripTotal(report));
+    grandTotal = reports.fold(
+        0.0,
+            (sum, report) => sum + calculateTripTotal(report, destinations)
+    );
   }
+
   Future<void> _fetchDestinations() async {
     try {
       final response = await dio.get('$baseUrl/api/destination');
@@ -126,8 +132,19 @@ class _BusinessScreenState extends State<BusinessScreen> {
     }
   }
 
-  double calculateTripTotal(TripDetails report) {
+  double calculateTripTotal(TripDetails report, List<Freight> freightList) {
     try {
+      // Find the matching freight rate based on from and to locations
+      final matchingFreight = freightList.firstWhere(
+            (freight) =>
+        freight.from.toLowerCase() == report.destinationFrom?.toLowerCase() &&
+            freight.to.toLowerCase() == report.destinationTo?.toLowerCase(),
+        orElse: () => Freight(from: '', to: '', rate: 0),
+      );
+
+      // Get rate from the matching freight
+      final rate = matchingFreight.rate;
+
       // Safely handle all nullable values
       final freight = report.freight ?? 0.0;
       final tdsRate = report.tdsRate ?? 0.0;
@@ -136,13 +153,12 @@ class _BusinessScreenState extends State<BusinessScreen> {
       final toll = report.toll ?? 0.0;
       final adblue = report.adblue ?? 0.0;
       final greasing = report.greasing ?? 0.0;
-      final rates = report.rate ?? 0.0;
 
       // Calculate TDS amount
       final tdsAmount = (freight * tdsRate) / 100;
 
-      // Calculate final total
-      final total = freight - tdsAmount - rates - dieselAmount -
+      // Calculate final total using rate from matching freight
+      final total = freight - tdsAmount - rate - dieselAmount -
           advance - toll - adblue - greasing;
 
       return total;
@@ -152,15 +168,9 @@ class _BusinessScreenState extends State<BusinessScreen> {
     }
   }
 
-
   Future<void> _fetchReports() async {
     if ((startDate == null || endDate == null) && _truckController.text.isEmpty) {
       _showErrorDialog('Please select at least one filter');
-      return;
-    }
-
-    if ((startDate != null && endDate != null) && _truckController.text.isEmpty) {
-      _showErrorDialog('Please select a truck number');
       return;
     }
 
@@ -182,10 +192,10 @@ class _BusinessScreenState extends State<BusinessScreen> {
 
       setState(() {
         reports = results;
-        // Calculate grand total
+        // Calculate grand total using the destinations list
         grandTotal = results.fold(
             0.0,
-                (total, report) => total + calculateTripTotal(report)
+                (total, report) => total + calculateTripTotal(report, destinations)
         );
       });
     } catch (e) {
