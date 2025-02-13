@@ -219,6 +219,7 @@ class _ReportCardState extends State<ReportCard> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 120,
@@ -227,7 +228,8 @@ class _ReportCardState extends State<ReportCard> {
           ),
           Expanded(
             child: isEditing
-                ? Row(
+                ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ElevatedButton(
                   onPressed: () => _pickFile(field),
@@ -242,6 +244,7 @@ class _ReportCardState extends State<ReportCard> {
                         .path
                         .split('/')
                         .last),
+
                   ),
               ],
             )
@@ -258,9 +261,10 @@ class _ReportCardState extends State<ReportCard> {
               )
                   : const Icon(Icons.file_download),
               label: Text(
-                  isLoading
-                      ? 'Downloading...'
-                      : fileData['originalname'] ?? 'Download'
+                isLoading
+                    ? 'Downloading...'
+                    : fileData['originalname'] ?? 'Download',
+                softWrap: true,
               ),
             )
                 : const Text('No file', style: TextStyle(color: Colors.red)),
@@ -395,7 +399,7 @@ class _ReportCardState extends State<ReportCard> {
   @override
   Widget build(BuildContext context) {
     final localDateTime = widget.report.createdAt!.toLocal();
-     // Add selection logic if needed
+    // Add selection logic if needed
 
     return Card(
       elevation: 4,
