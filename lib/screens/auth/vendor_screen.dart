@@ -130,124 +130,235 @@ class _VendorScreenState extends State<VendorScreen> {
       itemBuilder: (context, index) {
         final vendor = vendorList[index];
         return Card(
+          elevation: 4,
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: ListTile(
-            title: Text(
-              vendor.companyName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    vendor.companyName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.person_outline, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Owner: ${vendor.companyOwner}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
               children: [
-                Text('Owner: ${vendor.companyOwner}'),
-                Text('TDS Rate: ${vendor.tdsRate}%'),
-                Text('PAN: ${vendor.pan}'),
-                Text('GST: ${vendor.gst}'),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(4),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSection('Company Details', [
+                        _buildInfoRow('Company Name', vendor.companyName),
+                        _buildInfoRow('Owner Name', vendor.companyOwner),
+                      ]),
+                      const Divider(height: 32),
+                      _buildSection('Financial Information', [
+                        _buildInfoRow('TDS Rate', '${vendor.tdsRate}%'),
+                        _buildInfoRow('PAN', vendor.pan),
+                        _buildInfoRow('GST', vendor.gst),
+                      ]),
+                    ],
+                  ),
+                ),
               ],
             ),
-            isThreeLine: true,
           ),
         );
       },
     );
   }
 
+  Widget _buildSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildForm() {
-    return Form(
-      key: _formKey,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextFormField(
-              controller: _companyNameController,
-              decoration: const InputDecoration(
-                labelText: 'Vendor Name',
-                border: OutlineInputBorder(),
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _companyNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Vendor Name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.business),
+                ),
+                validator: (value) =>
+                value?.isEmpty ?? true ? 'Please enter vendor name' : null,
               ),
-              validator: (value) =>
-              value?.isEmpty ?? true ? 'Please enter vendor name' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _companyOwnerController,
-              decoration: const InputDecoration(
-                labelText: 'Vendor Owner',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _companyOwnerController,
+                decoration: const InputDecoration(
+                  labelText: 'Vendor Owner',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
+                ),
+                validator: (value) =>
+                value?.isEmpty ?? true ? 'Please enter vendor owner' : null,
               ),
-              validator: (value) =>
-              value?.isEmpty ?? true ? 'Please enter vendor owner' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _tdsRateController,
-              decoration: const InputDecoration(
-                labelText: 'TDS Rate (%)',
-                border: OutlineInputBorder(),
-                prefixText: '₹ ',
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _tdsRateController,
+                decoration: const InputDecoration(
+                  labelText: 'TDS Rate (%)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.percent),
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value?.isEmpty ?? true) return 'Please enter TDS rate';
+                  if (double.tryParse(value!) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              validator: (value) {
-                if (value?.isEmpty ?? true) return 'Please enter TDS rate';
-                if (double.tryParse(value!) == null) {
-                  return 'Please enter a valid number';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _panController,
-              decoration: const InputDecoration(
-                labelText: 'PAN',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _panController,
+                decoration: const InputDecoration(
+                  labelText: 'PAN',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.credit_card),
+                ),
+                textCapitalization: TextCapitalization.characters,
+                validator: (value) =>
+                value?.isEmpty ?? true ? 'Please enter PAN' : null,
               ),
-              textCapitalization: TextCapitalization.characters,
-              validator: (value) =>
-              value?.isEmpty ?? true ? 'Please enter PAN' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _gstController,
-              decoration: const InputDecoration(
-                labelText: 'GST',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _gstController,
+                decoration: const InputDecoration(
+                  labelText: 'GST',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.receipt_long),
+                ),
+                textCapitalization: TextCapitalization.characters,
+                validator: (value) =>
+                value?.isEmpty ?? true ? 'Please enter GST' : null,
               ),
-              textCapitalization: TextCapitalization.characters,
-              validator: (value) =>
-              value?.isEmpty ?? true ? 'Please enter GST' : null,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : _submitForm,
-                child: isLoading
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: isLoading ? null : _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5C2F95), // Purple background
+                    foregroundColor: Colors.white, // White text and icon color
+                    disabledBackgroundColor: Colors.grey, // Grey background when disabled
+                    disabledForegroundColor: Colors.white70, // Light white text/icon when disabled
                   ),
-                )
-                    : const Text('Submit'),
-              ),
-            ),
-            if (submitMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  submitMessage!,
-                  style: TextStyle(
-                    color: submitMessage!.startsWith('Error')
-                        ? Colors.red
-                        : Colors.green,
+                  icon: isLoading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                      : const Icon(Icons.add_business),
+                  label: const Text(
+                    'Add Vendor',
+                    style: TextStyle(color: Colors.white), // Ensure text is white
                   ),
                 ),
               ),
-          ],
+
+              if (submitMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    submitMessage!,
+                    style: TextStyle(
+                      color: submitMessage!.startsWith('Error')
+                          ? Colors.red
+                          : Colors.green,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -265,16 +376,40 @@ class _VendorScreenState extends State<VendorScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildForm(),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadVendorData,
-              child: _buildVendorList(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildForm(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.business, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Vendor List',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${vendorList.length} vendors',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            SizedBox(
+              height: 400, // Adjust this height as needed
+              child: RefreshIndicator(
+                onRefresh: _loadVendorData,
+                child: _buildVendorList(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

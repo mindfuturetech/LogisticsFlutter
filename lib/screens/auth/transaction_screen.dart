@@ -453,7 +453,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
               fetchTransactions();
             },
-            child: Text('Search'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              backgroundColor: const Color(0xFF5C2F95), // Purple shade
+            ),
+            child: const Text(
+              "Submit",
+              style: TextStyle(
+                color: Colors.white, // Set text color to white
+              ),
+            ),
           ),
         ],
       ),
@@ -502,98 +511,110 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               itemBuilder: (context, tripIndex) {
                 final trip = dayTrips[tripIndex];
                 return Card(
+                  elevation: 4,
                   margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Left side: Checkbox and Time
-                            Column(
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      title: Row(
+                        children: [
+                          Checkbox(
+                            value: selectedTripIds.contains(trip.id),
+                            onChanged: (bool? value) {
+                              setState(() {
+                                if (value == true && trip.id != null) {
+                                  print('Adding ID: ${trip.id}'); // Debug print
+                                  selectedTripIds.add(trip.id!);
+                                } else if (trip.id != null) {
+                                  selectedTripIds.remove(trip.id!);
+                                }
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Checkbox
-                                Checkbox(
-                                  value: selectedTripIds.contains(trip.id),
-                                  onChanged: (bool? value) {
-                                    setState(() {
-                                      if (value == true && trip.id != null) {
-                                        print('Adding ID: ${trip.id}'); // Debug print
-                                        selectedTripIds.add(trip.id!);
-                                      } else if (trip.id != null) {
-                                        selectedTripIds.remove(trip.id!);
-                                      }
-                                    });
-                                  },
-                                ),
-                                // Time
                                 Text(
-                                  DateFormat('HH:mm').format(trip.createdAt ?? DateTime.now()),
+                                  'Truck Number: ${trip.truckNumber ?? "N/A"}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                   ),
                                 ),
+                                SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time, size: 16),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      DateFormat('HH:mm').format(trip.createdAt ?? DateTime.now()),
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                    SizedBox(width: 16),
+                                    Text(
+                                      'Amount: ₹${trip.amount ?? "0.00"}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
-                            // Right side: Edit icon and Amount
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                // Edit icon
-                                IconButton(
-                                  icon: Icon(Icons.edit),
-                                  onPressed: () => _showEditDialog(trip),
-                                ),
-                                // Amount
-                                Text(
-                                  'Amount: ₹${trip.amount ?? '0.00'}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                ),
-                              ],
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => _showEditDialog(trip),
+                          ),
+                        ],
+                      ),
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(4),
+                              bottomRight: Radius.circular(4),
                             ),
-                          ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSection(
+                                'Trip Information',
+                                [
+                                  _buildInfoRow('Trip ID', trip.tripId ?? '-', isTripId: true),
+                                  _buildInfoRow('UserName', trip.username ?? '-'),
+                                  _buildInfoRow('Profile', trip.profile ?? '-'),
+                                  _buildInfoRow('Vendor', trip.vendor ?? '-'),
+                                  _buildInfoRow('Destination', trip.destinationTo ?? '-'),
+                                ],
+                              ),
+                              Divider(height: 32),
+                              _buildSection(
+                                'Financial Details',
+                                [
+                                  _buildFinancialRow('Weight', '${trip.weight ?? "-"}', 'Actual Wt.', '${trip.actualWeight ?? "-"}'),
+                                  _buildFinancialRow('Freight', '₹${trip.freight ?? "-"}', 'Rate', '₹${trip.rate ?? "-"}'),
+                                  _buildFinancialRow('Diesel', '₹${trip.dieselAmount ?? "-"}', 'Advance', '₹${trip.advance ?? "-"}'),
+                                  _buildFinancialRow('Toll', '₹${trip.toll ?? "-"}', 'TDS', '${trip.tdsRate ?? "-"}%'),
+                                ],
+                              ),
+                              Divider(height: 32),
+                              _buildSection(
+                                'Additional Information',
+                                [
+                                  _buildInfoRow('Bill ID', trip.billingId ?? '-'),
+                                  _buildInfoRow('Transaction Status', trip.transactionStatus ?? '-'),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        Divider(),
-                        _buildInfoRow('Trip ID', trip.tripId ?? '-',isTripId:true),
-                        _buildInfoRow('UserName', trip.username ?? '-'),
-                        _buildInfoRow('Profile', trip.profile ?? '-'),
-                        _buildInfoRow('Vendor', trip.vendor ?? '-'),
-                        _buildInfoRow('Truck No.', trip.truckNumber ?? '-'),
-                        _buildInfoRow('Destination', trip.destinationTo ?? '-'),
-                        Row(
-                          children: [
-                            Expanded(child: _buildInfoRow('Weight', '${trip.weight ?? '-'}')),
-                            Expanded(child: _buildInfoRow('Actual Wt.', '${trip.actualWeight ?? '-'}')),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: _buildInfoRow('Freight', '₹${trip.freight ?? '-'}')),
-                            Expanded(child: _buildInfoRow('Rate', '₹${trip.rate ?? '-'}')),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: _buildInfoRow('Diesel', '₹${trip.dieselAmount ?? '-'}')),
-                            Expanded(child: _buildInfoRow('Advance', '₹${trip.advance ?? '-'}')),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: _buildInfoRow('Toll', '₹${trip.toll ?? '-'}')),
-                            Expanded(child: _buildInfoRow('TDS', '${trip.tdsRate ?? '-'}%')),
-                          ],
-                        ),
-                        _buildInfoRow('Bill ID', trip.billingId ?? '-'),
-                        _buildInfoRow('Transaction Status', trip.transactionStatus ?? '-'),
                       ],
                     ),
                   ),
@@ -606,7 +627,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value,{bool isTripId=false}) {
+  Widget _buildSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        SizedBox(height: 16),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildFinancialRow(String label1, String value1, String label2, String value2) {
+    return Row(
+      children: [
+        Expanded(child: _buildInfoRow(label1, value1)),
+        Expanded(child: _buildInfoRow(label2, value2)),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {bool isTripId = false}) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -623,13 +671,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ),
           Expanded(
-            // child: Text(
-            //   value,
-            //   style: TextStyle(
-            //     fontWeight: FontWeight.w500,
-            //   ),
-            // ),
-
             child: isTripId
                 ? InkWell(
               onTap: () async {

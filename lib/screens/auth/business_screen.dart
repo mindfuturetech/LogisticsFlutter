@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:excel/excel.dart' as excel;
@@ -15,6 +16,10 @@ import '../../config/services/reports_service.dart';
 import '../../config/services/search_service.dart';
 import '../../widget/custom_drawer.dart';
 import 'home_screen.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+
 
 class BusinessScreen extends StatefulWidget {
   final TripDetails? tripDetails;
@@ -46,7 +51,8 @@ class _BusinessScreenState extends State<BusinessScreen> {
   Map<String, File?> selectedFiles = {};
   final dio = Dio();
   bool isEditing = false;
-
+  bool isDownloading = false;
+  final Map<String, bool> downloadingFiles = {};
 
 
   @override
@@ -121,29 +127,31 @@ class _BusinessScreenState extends State<BusinessScreen> {
   }
 
   double calculateTripTotal(TripDetails report) {
-    final rate = findDestinationRate(
-      report.destinationFrom ?? '',
-      report.destinationTo ?? '',
-    );
+    try {
+      // Safely handle all nullable values
+      final freight = report.freight ?? 0.0;
+      final tdsRate = report.tdsRate ?? 0.0;
+      final dieselAmount = report.dieselAmount ?? 0.0;
+      final advance = report.advance ?? 0.0;
+      final toll = report.toll ?? 0.0;
+      final adblue = report.adblue ?? 0.0;
+      final greasing = report.greasing ?? 0.0;
+      final rates = report.rate ?? 0.0;
 
-    final freight = report.freight ?? 0.0;
-    final tdsRate = report.tdsRate ?? 0.0;
-    final dieselAmount = report.dieselAmount ?? 0.0;
-    final advance = report.advance ?? 0.0;
-    final toll = report.toll ?? 0.0;
-    final adblue = report.adblue ?? 0.0;
-    final greasing = report.greasing ?? 0.0;
-    final rates = report.rate ?? 0.0;
+      // Calculate TDS amount
+      final tdsAmount = (freight * tdsRate) / 100;
 
-    return freight -
-        (freight * ( tdsRate)/100) -
-        rates-
-        dieselAmount -
-        advance -
-        toll -
-        adblue -
-        greasing;
+      // Calculate final total
+      final total = freight - tdsAmount - rates - dieselAmount -
+          advance - toll - adblue - greasing;
+
+      return total;
+    } catch (e) {
+      print('Error calculating trip total: $e');
+      return 0.0;
+    }
   }
+
 
   Future<void> _fetchReports() async {
     if ((startDate == null || endDate == null) && _truckController.text.isEmpty) {
@@ -411,49 +419,8 @@ class _BusinessScreenState extends State<BusinessScreen> {
   }
 
 
-  Future<void> _downloadFile(String id, String field, Map<String, dynamic>? fileData) async {
-    if (!mounted) return;
 
-    if (fileData == null || fileData['originalname'] == null) {
-      _showError('File information is missing');
-      return;
-    }
 
-    setState(() => isLoading = true);
-
-    try {
-      print('Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
-
-      await _reportsService.downloadFile(
-        id,
-        field,
-        fileData['originalname'],
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('File downloaded successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Download failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error downloading file: ${e.toString().replaceAll('Exception:', '').trim()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
-    }
-  }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -474,45 +441,29 @@ class _BusinessScreenState extends State<BusinessScreen> {
   }
 
 
-  // Update your _buildFileField method to handle download state
-  // Update your _buildFileField method to handle download state
-  Widget _buildFileField(String label, String field,
-      Map<String, dynamic>? fileData) {
+  // In _BusinessScreenState class, update the _buildFileField and _downloadFile methods:
+
+  Widget _buildFileField(String label, String field, Map<String, dynamic>? fileData) {
+    final bool isDownloadingThis = downloadingFiles[field] ?? false;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           SizedBox(
             width: 120,
-            child: Text(
-                label, style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           Expanded(
-            child: isEditing
-                ? Row(
-              children: [
-                ElevatedButton(
-                  onPressed: () => _pickFile(field),
-                  child: Text(selectedFiles[field] != null
-                      ? 'Change File'
-                      : 'Select File'),
-                ),
-                if (selectedFiles[field] != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Text(selectedFiles[field]!
-                        .path
-                        .split('/')
-                        .last),
-                  ),
-              ],
-            )
-                : fileData != null && fileData['filepath'] != null
+            child: fileData != null && fileData['originalname'] != null
                 ? TextButton.icon(
-              onPressed: isLoading
+              onPressed: isDownloadingThis
                   ? null
-                  : () => _downloadFile(widget.tripDetails!.id!, field, fileData),
-              icon: isLoading
+                  : () => _downloadFile(
+                field,
+                fileData,
+              ),
+              icon: isDownloadingThis
                   ? const SizedBox(
                 width: 20,
                 height: 20,
@@ -520,9 +471,9 @@ class _BusinessScreenState extends State<BusinessScreen> {
               )
                   : const Icon(Icons.file_download),
               label: Text(
-                  isLoading
-                      ? 'Downloading...'
-                      : fileData['originalname'] ?? 'Download'
+                isDownloadingThis
+                    ? 'Downloading...'
+                    : fileData['originalname']?.toString() ?? 'Download',
               ),
             )
                 : const Text('No file', style: TextStyle(color: Colors.red)),
@@ -531,6 +482,147 @@ class _BusinessScreenState extends State<BusinessScreen> {
       ),
     );
   }
+
+  Future<void> _downloadFile(String field, Map<String, dynamic>? fileData) async {
+    if (!mounted) return;
+
+    // Check if we have valid file data
+    if (fileData == null || fileData['originalname'] == null) {
+      _showError('File information is missing');
+      return;
+    }
+
+    // Get the current report's ID based on the context
+    final reportId = reports.firstWhere(
+          (report) => report.DieselSlipImage == fileData ||
+          report.LoadingAdvice == fileData ||
+          report.InvoiceCompany == fileData ||
+          report.WeightmentSlip == fileData,
+      orElse: () => TripDetails(),
+    ).id;
+
+    if (reportId == null) {
+      _showError('Could not find report ID');
+      return;
+    }
+
+    setState(() {
+      downloadingFiles[field] = true;
+    });
+
+    try {
+      print('Starting download - ID: $reportId, Field: $field, File: ${fileData['originalname']}');
+
+      await _reportsService.downloadFile(
+        reportId,
+        field,
+        fileData['originalname'],
+      );
+
+      if (mounted) {
+        _showSuccess('File downloaded successfully');
+      }
+    } catch (e) {
+      print('Download failed: $e');
+      if (mounted) {
+        _showError(e.toString().replaceAll('Exception:', '').trim());
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          downloadingFiles[field] = false;
+        });
+      }
+    }
+  }
+
+
+  // Update your _buildFileField method to handle download state
+  // Update your _buildFileField method to handle download stat
+  // Widget _buildFileField(String label, String field, Map<String, dynamic>? fileData) {
+  //   final bool isDownloadingThis = downloadingFiles[field] ?? false;
+  //
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(vertical: 4),
+  //     child: Row(
+  //       children: [
+  //         SizedBox(
+  //           width: 120,
+  //           child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+  //         ),
+  //         Expanded(
+  //           child: fileData != null && fileData['originalname'] != null
+  //               ? TextButton.icon(
+  //             onPressed: isDownloadingThis
+  //                 ? null
+  //                 : () => _downloadFile(
+  //               widget.tripDetails?.id ?? '',
+  //               field,
+  //               fileData,
+  //             ),
+  //             icon: isDownloadingThis
+  //                 ? const SizedBox(
+  //               width: 20,
+  //               height: 20,
+  //               child: CircularProgressIndicator(strokeWidth: 2),
+  //             )
+  //                 : const Icon(Icons.file_download),
+  //             label: Text(
+  //               isDownloadingThis
+  //                   ? 'Downloading...'
+  //                   : fileData['originalname']?.toString() ?? 'Download',
+  //             ),
+  //           )
+  //               : const Text('No file', style: TextStyle(color: Colors.red)),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
+
+
+
+
+  // Future<void> _downloadFile(String id, String field,
+  //     Map<String, dynamic>? fileData) async {
+  //   if (!mounted) return;
+  //
+  //   // Check if we have valid file data
+  //   if (fileData == null || fileData['originalname'] == null) {
+  //     _showError('File information is missing');
+  //     return;
+  //   }
+  //
+  //   setState(() => isLoading = true);
+  //
+  //   try {
+  //     print(
+  //         'Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
+  //
+  //     await _reportsService.downloadFile(
+  //       id,
+  //       field,
+  //       fileData['originalname'],
+  //     );
+  //
+  //     if (mounted) {
+  //       _showSuccess('File downloaded successfully');
+  //     }
+  //   } catch (e) {
+  //     print('Download failed: $e');
+  //     if (mounted) {
+  //       _showError(e.toString().replaceAll('Exception:', '').trim());
+  //     }
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => isLoading = false);
+  //     }
+  //   }
+  // }
+
+
+
 
 
   @override
@@ -645,7 +737,16 @@ class _BusinessScreenState extends State<BusinessScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _fetchReports,
-              child: const Text('Submit'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                backgroundColor: const Color(0xFF5C2F95), // Purple shade
+              ),
+              child: const Text(
+                "Submit",
+                style: TextStyle(
+                  color: Colors.white, // Set text color to white
+                ),
+              ),
             ),
           ],
         ),
@@ -669,111 +770,64 @@ class _BusinessScreenState extends State<BusinessScreen> {
               final localDateTime = report.createdAt?.toLocal() ?? DateTime.now();
 
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ExpansionTile(
-                  title: Row(
-                    children: [
-                      const Text(
-                        'Truck Number: ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                elevation: 4,
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                child: Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Truck Number: ${report.truckNumber ?? 'N/A'}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      Text(
-                        report.truckNumber ?? 'N/A',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              DateFormat('dd MMM yyyy').format(localDateTime),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(width: 16),
+                            const Icon(Icons.access_time, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              DateFormat('hh:mm a').format(localDateTime),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'Date: ',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          Text(
-                            DateFormat('dd MMM yyyy').format(localDateTime),
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Text(
-                            'Time: ',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          Text(
-                            DateFormat('hh:mm a').format(localDateTime),
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildInfoRow('Trip ID', report.tripId, isTripId: true),
-                                    _buildInfoRow('DO Number', report.doNumber?.toString()),
-                                    _buildInfoRow('User Name', report.username),
-                                    _buildInfoRow('Profile', report.profile),
-                                    _buildInfoRow('Driver', report.driverName),
-                                    _buildInfoRow('Vendor', report.vendor),
-                                    _buildInfoRow('From', report.destinationFrom),
-                                    _buildInfoRow('To', report.destinationTo),
-                                    _buildInfoRow('Bill ID', report.billingId),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildInfoRow('Diesel Amount', '₹${report.dieselAmount ?? 0}'),
-                                    _buildInfoRow('Weight', report.weight?.toString()),
-                                    _buildInfoRow('Difference', report.differenceInWeight?.toString()),
-                                    _buildInfoRow('Freight', '₹${report.freight ?? 0}'),
-                                    _buildInfoRow('Diesel Slip Number', report.dieselSlipNumber?.toString()),
-                                    _buildInfoRow('TDS Rate', report.tdsRate?.toString()),
-                                    _buildInfoRow('Advance', '₹${report.advance ?? 0}'),
-                                    _buildInfoRow('Toll', '₹${report.toll ?? 0}'),
-                                    _buildInfoRow('Adblue', '₹${report.adblue ?? 0}'),
-                                    _buildInfoRow('Greasing', '₹${report.greasing ?? 0}'),
-                                    _buildInfoRow('Truck Type', report.truckType),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFileField('Diesel Slip', 'DieselSlipImage', report.DieselSlipImage),
-                          _buildFileField('Loading Advice', 'LoadingAdvice', report.LoadingAdvice),
-                          _buildFileField('Invoice', 'InvoiceCompany', report.InvoiceCompany),
-                          _buildFileField('Weightment Slip', 'WeightmentSlip', report.WeightmentSlip),
-                        ],
-                      ),
+                      ],
                     ),
-                  ],
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(4),
+                            bottomRight: Radius.circular(4),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildTripInformation(report),
+                            const Divider(height: 32),
+                            _buildFinancialInformation(report),
+                            const SizedBox(height: 16),
+                            _buildDocumentSection(report),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -808,80 +862,243 @@ class _BusinessScreenState extends State<BusinessScreen> {
     );
   }
 
-
-  Widget _buildInfoRow(String label, String? value,{bool isTripId=false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+  Widget _buildTripInformation(report) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Trip Information',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
           ),
-          Expanded(
-            child: isTripId
-                ? InkWell(
-              onTap: () async {
-                try {
-                  final searchService = ApiSearchService();
-                  final tripDetails = await searchService.searchUserById(value ?? '');
-
-                  if (!mounted) return;
-
-                  if (tripDetails != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TruckDetailsScreen(
-                          username: tripDetails.username ?? '',
-                          initialTripDetails: tripDetails,
-                        ),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('No trip details found for ID: $value'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (!mounted) return;
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error fetching trip details: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: Text(
-                value ?? 'N/A',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: Colors.blue,
-                ),
-              ),
-            )
-                : Text(
-              value ?? 'N/A',
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 3,
+          children: [
+            _buildInfoRow('Trip ID', report.tripId, isTripId: true),
+            _buildInfoRow('DO Number', report.doNumber?.toString()),
+            _buildInfoRow('User Name', report.username),
+            _buildInfoRow('Profile', report.profile),
+            _buildInfoRow('Driver', report.driverName),
+            _buildInfoRow('Vendor', report.vendor),
+            _buildInfoRow('From', report.destinationFrom),
+            _buildInfoRow('To', report.destinationTo),
+            _buildInfoRow('Bill ID', report.billingId),
+            _buildInfoRow('Truck Type', report.truckType),
+          ],
+        ),
+      ],
     );
   }
+
+  Widget _buildFinancialInformation(report) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Financial Details',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 3,
+          children: [
+            _buildInfoRow('Diesel Amount', '₹${report.dieselAmount ?? 0}'),
+            _buildInfoRow('Weight', report.weight?.toString()),
+            _buildInfoRow('Difference', report.differenceInWeight?.toString()),
+            _buildInfoRow('Freight', '₹${report.freight ?? 0}'),
+            _buildInfoRow('Diesel Slip Number', report.dieselSlipNumber?.toString()),
+            _buildInfoRow('TDS Rate', report.tdsRate?.toString()),
+            _buildInfoRow('Advance', '₹${report.advance ?? 0}'),
+            _buildInfoRow('Toll', '₹${report.toll ?? 0}'),
+            _buildInfoRow('Adblue', '₹${report.adblue ?? 0}'),
+            _buildInfoRow('Greasing', '₹${report.greasing ?? 0}'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDocumentSection(report) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Documents',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildFileField('Diesel Slip', 'DieselSlipImage', report.DieselSlipImage),
+        _buildFileField('Loading Advice', 'LoadingAdvice', report.LoadingAdvice),
+        _buildFileField('Invoice', 'InvoiceCompany', report.InvoiceCompany),
+        _buildFileField('Weightment Slip', 'WeightmentSlip', report.WeightmentSlip),
+      ],
+    );
+  }
+
+
+
+  // Widget _buildInfoRow(String label, String? value, {bool isTripId = false}) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Text(
+  //         label,
+  //         style: const TextStyle(
+  //           fontWeight: FontWeight.bold,
+  //           color: Colors.grey,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 4),
+  //       isTripId
+  //           ? GestureDetector(
+  //         onTap: () async {
+  //           try {
+  //             final searchService = ApiSearchService();
+  //             final tripDetails = await searchService.searchUserById(value ?? '');
+  //
+  //             if (!mounted) return;
+  //
+  //             if (tripDetails != null) {
+  //               Navigator.push(
+  //                 context,
+  //                 MaterialPageRoute(
+  //                   builder: (context) => TruckDetailsScreen(
+  //                     username: tripDetails.username ?? '',
+  //                     initialTripDetails: tripDetails,
+  //                   ),
+  //                 ),
+  //               );
+  //             } else {
+  //               ScaffoldMessenger.of(context).showSnackBar(
+  //                 SnackBar(
+  //                   content: Text('No trip details found for ID: $value'),
+  //                   backgroundColor: Colors.red,
+  //                 ),
+  //               );
+  //             }
+  //           } catch (e) {
+  //             if (!mounted) return;
+  //
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               SnackBar(
+  //                 content: Text('Error fetching trip details: $e'),
+  //                 backgroundColor: Colors.red,
+  //               ),
+  //             );
+  //           }
+  //         },
+  //         child: Text(
+  //           value ?? 'N/A',
+  //           style: const TextStyle(
+  //             color: Colors.blue,
+  //             fontSize: 16,
+  //             fontWeight: FontWeight.w500,
+  //           ),
+  //           overflow: TextOverflow.ellipsis,
+  //         ),
+  //       )
+  //           : Text(
+  //         value ?? 'N/A',
+  //         style: const TextStyle(
+  //           fontSize: 16,
+  //           fontWeight: FontWeight.w500,
+  //         ),
+  //         overflow: TextOverflow.ellipsis,
+  //       ),
+  //     ],
+  //   );
+  // }
+  //
+  Widget _buildInfoRow(String label, String? value, {bool isTripId = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 4),
+        isTripId
+            ? GestureDetector(
+          onTap: () async {
+            try {
+              final searchService = ApiSearchService();
+              final tripDetails = await searchService.searchUserById(value ?? '');
+
+              if (!mounted) return;
+
+              if (tripDetails != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TruckDetailsScreen(
+                      username: tripDetails.username ?? '',
+                      initialTripDetails: tripDetails,
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('No trip details found for ID: $value'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (!mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error fetching trip details: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          child: Text(
+            value ?? 'N/A',
+            style: const TextStyle(
+              color: Colors.blue,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        )
+            : Text(
+          value ?? 'N/A',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
 
   @override
   void dispose() {
