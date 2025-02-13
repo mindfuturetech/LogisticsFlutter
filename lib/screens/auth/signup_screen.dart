@@ -170,7 +170,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             borderRadius: BorderRadius.circular(12),
                             child: Image.asset(
                               'assets/logo.png',
-                              height: 100,
+                              height: 160,
                             ),
                           ),
                         ),
@@ -182,12 +182,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         const SizedBox(height: 24),
                         TextFormField(
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Username',
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.zero,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            prefixIcon: Icon(Icons.person),
+                            prefixIcon: const Icon(Icons.person),
                             filled: true,
                             fillColor: Colors.white,
                           ),
@@ -201,12 +201,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Select your profile',
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.zero,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            prefixIcon: Icon(Icons.account_circle),
+                            prefixIcon: const Icon(Icons.account_circle),
                             filled: true,
                             fillColor: Colors.white,
                           ),
@@ -233,8 +233,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             backgroundColor: const Color(0xFF4CAF50),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           child: _isLoading

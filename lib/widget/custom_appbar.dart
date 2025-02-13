@@ -339,13 +339,31 @@ class _CustomAppBarState extends State<CustomAppBar> {
                         title: const Text('Confirm Logout'),
                         content: const Text('Are you sure you want to logout?'),
                         actions: [
-                          TextButton(
+                          ElevatedButton(
                             onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancel'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[200],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.black),
+                            ),
                           ),
-                          TextButton(
+                          ElevatedButton(
                             onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Logout'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Yes, Logout',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                         ],
                       );
