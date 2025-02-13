@@ -21,7 +21,7 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
     try {
       // Test signup endpoint
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/logistics/signup'),
+        Uri.parse('http://13.61.234.145/logistics/signup'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'username': 'testuser',

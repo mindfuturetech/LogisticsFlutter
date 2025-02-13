@@ -31,7 +31,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
 
 
 
-  String baseUrl = 'http://10.0.2.2:5000/logistics';
+  String baseUrl = 'http://13.61.234.145/logistics';
   List<Map<String, dynamic>> destinationList = [];
   List<Map<String, dynamic>> vendorsList = [];
   List<Map<String, dynamic>> truckNumbersList = [];
@@ -66,7 +66,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   // String selectedTransactionStatus = '';
   String? _editingId;
   String? selectedTruckType;
-  List<String> truckTypes = ['Type 1', 'Type 2', 'Type 3'];
+  List<String> truckTypes = ['Bulker', 'Bag', 'Others'];
   String? selectedTransactionStatus;
   List<String> transactionStatuses = ['Open','Acknowledged','Billed'];
 
@@ -447,16 +447,20 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
               //   'Transaction Status',
               //   ['Open'],
               // ),
+
               _buildDropdownField(
                 label: 'Transaction Status',
-                options: transactionStatuses,
-                selectedValue: selectedTransactionStatus,
-                onChanged: (value) {
+                options: _editingId == null ? ['Open'] : transactionStatuses,
+                selectedValue: selectedTransactionStatus ?? 'Open',
+                onChanged: _editingId == null
+                    ? (value) {} // Provide an empty function instead of null
+                    : (value) {
                   setState(() {
                     selectedTransactionStatus = value!;
                   });
                 },
               ),
+
 
               const SizedBox(height: 16),
               Autocomplete<Map<String, dynamic>>(

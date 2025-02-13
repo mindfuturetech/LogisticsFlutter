@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../app_config.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:5000/logistics';
+  static const String baseUrl = 'http://13.61.234.145/logistics';
   Future<Map<String, dynamic>> signup(String username, String profile) async {
     try {
       print('Sending signup request for user: $username with profile: $profile');

@@ -43,7 +43,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
   List<String> trucks = [];
   bool isLoading = false;
   double grandTotal = 0.0;
-  String baseUrl = 'https://mindfuturetechsupport.com/logistics';
+  String baseUrl = 'http://13.61.234.145/logistics';
   List<Freight> destinations = [];
   List<Freight> report = [];
   // final SearchService _searchService = SearchService();

@@ -32,7 +32,7 @@ class ApiSearchService {
     print("$id");
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:5000/logistics/api/trip/$id'),
+        Uri.parse('http://13.61.234.145/logistics/api/trip/$id'),
         headers: {'Content-Type': 'application/json'},
       );
       print(TripDetails.fromJson(json.decode(response.body)));

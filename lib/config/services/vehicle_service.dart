@@ -8,19 +8,24 @@ import 'package:http_parser/http_parser.dart';
 import '../model/vehicle_model.dart';
 
 class VehicleService {
-  static const String baseUrl = 'http://10.0.2.2:5000/logistics'; // Use your IP address for real device
+  static const String baseUrl = 'http://13.61.234.145/logistics'; // Use your IP address for real device
   Future<List<Vehicle>> getVehicles() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/list-vehicle'));
 
       if (response.statusCode == 200) {
-        print('API Response: ${response.body}');
+        // print('API Response: ${response.body}');
 
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
 
+        print('API Sumit: ${response.body}');
         if (jsonResponse.containsKey('resultData')) {
           final List<dynamic> data = jsonResponse['resultData'];
-          return data.map((json) => Vehicle.fromJson(json)).toList();
+          // return data.map((json) => Vehicle.fromJson(json)).toList();
+          return data.map((vehicleJson) {
+            print('🚛 Processing Vehicle: $vehicleJson');  // Debugging
+            return Vehicle.fromJson(vehicleJson);  // Sends data to both classes
+          }).toList();
         } else {
           throw Exception('Invalid response format');
         }
@@ -44,7 +49,7 @@ class VehicleService {
 
       // Add basic vehicle details
       final fields = {
-        'truckNo': truckNo,
+        'truck_no': truckNo,  // Match the backend naming**
         'make': make,
         'companyOwner': companyOwner,
       };
@@ -99,6 +104,44 @@ class VehicleService {
       }
     } catch (e) {
       throw Exception('Error downloading file: $e');
+    }
+  }
+
+  //Added new for upload Document purpose
+  Future<void> uploadDocument(
+      String truckNo,
+      String fieldName,
+      String filePath,
+      String startDate,
+      String endDate,
+      ) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/upload-document'),
+      );
+
+      // Add file
+      request.files.add(await http.MultipartFile.fromPath(
+        fieldName,
+        filePath,
+        contentType: MediaType('application', 'pdf'),
+      ));
+
+      // Add fields
+      request.fields.addAll({
+        'truck_no': truckNo,
+        'field_name': fieldName,
+        '${fieldName}_startDate': startDate,
+        '${fieldName}_endDate': endDate,
+      });
+
+      final response = await request.send();
+      if (response.statusCode != 200) {
+        throw Exception('Failed to upload document');
+      }
+    } catch (e) {
+      throw Exception('Error uploading document: $e');
     }
   }
 }

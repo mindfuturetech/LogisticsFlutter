@@ -11,7 +11,7 @@ import '../model/truck_details_model.dart';
 
 class ReportsService {
   final Dio _dio;
-  final String baseUrl = 'http://10.0.2.2:5000/logistics';
+  final String baseUrl = 'http://13.61.234.145/logistics';
   // Constructor with flexible base URL
   ReportsService({String? baseUrl}) : _dio = Dio(BaseOptions(
     // Use platform-aware base URL
@@ -23,11 +23,11 @@ class ReportsService {
   // Platform-specific base URL helper
   static String getPlatformSpecificBaseUrl() {
     if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5000/logistics'; // Android emulator localhost
+      return 'http://13.61.234.145/logistics'; // Android emulator localhost
     } else if (Platform.isIOS) {
-      return 'http://10.0.2.2:5000/logistics'; // iOS simulator localhost
+      return 'http://13.61.234.145/logistics'; // iOS simulator localhost
     }
-    return 'http://10.0.2.2:5000/logistics'; // Default fallback
+    return 'http://13.61.234.145/logistics'; // Default fallback
   }
 
   Future<List<TripDetails>> getReports({
