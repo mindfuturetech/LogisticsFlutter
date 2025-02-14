@@ -39,7 +39,7 @@ import 'package:http/http.dart' as http;
 import 'package:logistics/config/model/truck_details_model.dart';
 
 class TruckService {
-  static const String baseUrl = 'http://13.61.234.145/logistics';
+  static const String baseUrl = 'https://shreelalchand.com/logistics';
 
   Future<bool> updateTruckDetails(TripDetails details) async {
     try {
