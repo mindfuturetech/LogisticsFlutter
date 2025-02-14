@@ -121,7 +121,7 @@ class TripDetails {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
     if (tripId != null) data['TripId'] = tripId;
-    if (username != null) data['Username'] = username;
+    if (username != null) data['username'] = username;
     if (profile != null) data['Profile'] = profile;
     if (truckNumber != null) data['TruckNumber'] = truckNumber;
     if (doNumber != null) data['DONumber'] = doNumber;

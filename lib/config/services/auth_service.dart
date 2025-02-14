@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://10.0.2.2:5000/logistics';
+  static const String baseUrl = 'https://shreelalchand.com/logistics';
 
   // For maintaining auth state
   static Future<void> setAuthToken(bool value) async {
@@ -31,8 +31,10 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        await setAuthToken(true);
+        print('Success: ${response.statusCode}');
+         setAuthToken(true);
         return json.decode(response.body);
+
       } else {
         final errorData = json.decode(response.body);
         throw Exception(errorData['message'] ?? 'Login failed');

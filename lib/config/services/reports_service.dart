@@ -21,11 +21,11 @@ class ReportsService {
   // Platform-specific base URL helper
   static String getPlatformSpecificBaseUrl() {
     if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5000/logistics'; // Android emulator localhost
+      return 'https://shreelalchand.com'; // Android emulator localhost
     } else if (Platform.isIOS) {
-      return 'http://10.0.2.2:5000/logistics'; // iOS simulator localhost
+      return 'https://shreelalchand.com'; // iOS simulator localhost
     }
-    return 'http://10.0.2.2:5000/logistics'; // Default fallback
+    return 'https://shreelalchand.com'; // Default fallback
   }
 
   Future<List<TripDetails>> getReports({

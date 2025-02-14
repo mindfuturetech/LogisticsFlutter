@@ -27,7 +27,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
   List<String> trucks = [];
   bool isLoading = false;
   double grandTotal = 0.0;
-  String baseUrl = 'http:/10.0.2.2:5000/logistics';
+  String baseUrl = 'https://shreelalchand.com';
   List<Freight> destinations = [];
   List<Freight> report = [];
 

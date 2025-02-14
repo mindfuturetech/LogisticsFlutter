@@ -22,7 +22,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   final _truckDetails = TripDetails();
 
 
-  String baseUrl = 'http://10.0.2.2:5000/logistics';
+  String baseUrl = 'https://shreelalchand.com/logistics';
   List<Map<String, dynamic>> destinationList = [];
   List<Map<String, dynamic>> vendorsList = [];
   List<Map<String, dynamic>> truckNumbersList = [];
@@ -303,7 +303,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.add_shopping_cart_sharp),
-              title: const Text('business'),
+              title: const Text('test'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/business');

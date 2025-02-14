@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/transaction_service.dart';
 
@@ -19,8 +22,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   String errorMessage = '';
   String noDataMessage = '';
 
-  final String baseUrl = 'http://10.0.2.2:5000/logistics/list-all-transactions';
-  final String updateUrl = 'http://10.0.2.2:5000/logistics/update-transactions';
+
+  final String baseUrl = 'https://shreelalchand.com/logistics/list-all-transactions';
+  final String updateUrl = 'https://shreelalchand.com/logistics/update-transactions';
+  final String generatePDFTransactionUrl = "https://shreelalchand.com/logistics/generate-pdf-transaction";
 
   @override
   void initState() {
@@ -102,34 +107,73 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
-  // Future<void> generateBillsPDF() async {
-  //   if (selectedTripIds.isEmpty) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Please select at least one transaction')),
-  //     );
-  //     return;
-  //   }
-  //
-  //   try {
-  //     final response = await http.post(
-  //       Uri.parse('$baseUrl/generate-pdf'),
-  //       headers: {'Content-Type': 'application/json'},
-  //       body: json.encode({'trip_ids': selectedTripIds.toList()}),
-  //     );
-  //
-  //     if (response.statusCode == 200) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Bills generated successfully')),
-  //       );
-  //     } else {
-  //       throw Exception('Failed to generate bills');
-  //     }
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text('Error generating bills: ${e.toString()}')),
-  //     );
-  //   }
-  // }
+  Future<void> _handleGeneratePDF() async {
+    if (selectedTripIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select at least one transaction')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Format the payload as expected by your existing backend
+      final payload = selectedTripIds.map((id) => {
+        'id': id,
+        'transaction_status': 'Billed'
+      }).toList();
+
+      print("Sending payload: $payload"); // Debug print
+
+      final response = await http.post(
+          Uri.parse(generatePDFTransactionUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/pdf',
+          },
+          body: json.encode(payload)
+      );
+
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        // Get the temporary directory
+        final directory = await getApplicationDocumentsDirectory();
+        final fileName = 'GeneratedTransactionBill.pdf';
+        final filePath = '${directory.path}/$fileName';
+
+        // Write the PDF data to a file
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+
+        // Open the PDF file
+        await OpenFile.open(filePath);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF generated successfully')),
+        );
+
+        // Clear selections and refresh the list
+        setState(() {
+          selectedTripIds.clear();
+        });
+        fetchTransactions();
+      } else {
+        throw Exception('Failed to generate PDF: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error generating PDF: $e'); // Debug print
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error generating PDF: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   Future<void> _selectDate(BuildContext context, bool isStart) async {
     final DateTime now = DateTime.now();
     final DateTime lastValidDate = DateTime(2025);
@@ -321,14 +365,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Transactions'),
-        // actions: [
-        //   if (selectedTripIds.isNotEmpty)
-        //     // IconButton(
-        //     //   icon: Icon(Icons.picture_as_pdf),
-        //     //   // onPressed: generateBillsPDF,
-        //     //   tooltip: 'Generate Bills PDF',
-        //     // ),
-        // ],
+        actions: [
+          if (selectedTripIds.isNotEmpty)
+            isLoading
+                ? Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            )
+                : ElevatedButton.icon(
+              onPressed: _handleGeneratePDF,
+              icon: Icon(Icons.picture_as_pdf),
+              label: Text('Generate Bill'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -451,13 +513,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               children: [
                                 // Checkbox
                                 Checkbox(
-                                  value: selectedTripIds.contains(trip.tripId),
+                                  value: selectedTripIds.contains(trip.id),
                                   onChanged: (bool? value) {
                                     setState(() {
-                                      if (value == true && trip.tripId != null) {
-                                        selectedTripIds.add(trip.tripId!);
-                                      } else if (trip.tripId != null) {
-                                        selectedTripIds.remove(trip.tripId!);
+                                      if (value == true && trip.id != null) {
+                                        print('Adding ID: ${trip.id}'); // Debug print
+                                        selectedTripIds.add(trip.id!);
+                                      } else if (trip.id != null) {
+                                        selectedTripIds.remove(trip.id!);
                                       }
                                     });
                                   },
