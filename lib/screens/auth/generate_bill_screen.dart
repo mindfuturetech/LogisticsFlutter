@@ -1,8 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../config/model/truck_details_model.dart';
+import '../../config/services/generate_bill_service.dart';
+import '../../config/services/search_service.dart';
+import 'home_screen.dart';
 
 
 class GenerateBillScreen extends StatefulWidget {
@@ -22,6 +29,8 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   List<String> vendors = [];
   List<String> trucks = [];
   int? currentBillId;
+  Set<String> selectedTripIds = Set<String>();
+  bool hasSelectedItems = false;
 
   final TextEditingController _vendorController = TextEditingController();
   final TextEditingController _truckController = TextEditingController();
@@ -33,7 +42,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
     _loadTrucks();
     _fetchCurrentBillId();
   }
-
+  final String generatePDFTransactionUrl ="https://shreelalchand.com/logistics/generate-pdf-bill";
   Future<void> _fetchCurrentBillId() async {
     try {
       final response = await http.get(
@@ -91,6 +100,66 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
       );
     }
   }
+  Future<void> handleGeneratePDF() async {
+    if (selectedTripIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one transaction')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final billService = BillService();
+
+      // Format selected trips for the API
+      final selectedTrips = bills
+          .where((bill) => selectedTripIds.contains(bill.tripId))
+          .map((bill) => {
+        'id': bill.id,
+        'transaction_status': 'Billed',
+      })
+          .toList();
+
+      await billService.generatePDF(selectedTrips);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bill generated successfully')),
+        );
+      }
+
+      // Clear selections and refresh
+      setState(() {
+        selectedTripIds.clear();
+        selectedBills.clear();
+        hasSelectedItems = false;
+      });
+
+      // Refresh the bills list
+      await _searchBills();
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating bill: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+
+
 
   Future<void> _searchBills() async {
     if ((startDate == null || endDate == null) &&
@@ -122,13 +191,17 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
     });
 
     try {
+      print("Sending startDate: ${startDate?.toIso8601String()}");
+      print("Sending endDate: ${endDate?.toIso8601String()}");
+
       // Print request details for debugging
       final requestBody = {
-        'startDate': startDate?.toIso8601String(),
-        'endDate': endDate?.toIso8601String(),
+        'startDate': startDate != null ? DateFormat("yyyy-MM-dd'").format(startDate!) : null,
+        'endDate': endDate != null ? DateFormat("yyyy-MM-dd'").format(endDate!) : null,
         'vendor': selectedVendor,
         'truckNumber': selectedTruck,
       };
+
       print('Request body: ${json.encode(requestBody)}');
 
       final response = await http.post(
@@ -165,15 +238,16 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
             data['resultData'].map((x) {
               // Print individual record for debugging
               print('Processing record: $x');
-
               return TripDetails(
+                tripId: x['trip_id']?.toString() ?? '',
                 id: x['_id']?.toString() ?? '',
+                username: x['username']?.toString() ?? '',
+                profile: x['profile']?.toString() ?? '',
                 truckNumber: x['truck_no']?.toString() ?? '',
                 weight: _parseDouble(x['weight']),
                 actualWeight: _parseDouble(x['actual_weight']),
                 differenceInWeight: _parseDouble(x['difference_weight']),
                 freight: _parseDouble(x['freight']),
-                diesel: _parseDouble(x['diesel']),
                 dieselAmount: _parseDouble(x['diesel_amount']),
                 advance: _parseDouble(x['advance']),
                 driverName: x['driver_name']?.toString() ?? '',
@@ -231,82 +305,33 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
       return 0.0;
     }
   }
-  Future<void> _generateBill() async {
-    if (selectedBills.isEmpty) {
-      if (mounted) {  // Add mounted check
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select at least one bill')),
-        );
-      }
-      return;
-    }
-
-
-    try {
-      final selectedBillsData = bills
-          .where((bill) => selectedBills.contains(bill.truckNumber))
-          .map((bill) => {
-        'id': bill.id ?? '',
-        'transaction_status': bill.transactionStatus ?? 'Open',
-        'bill_id': currentBillId, // Include the current bill ID
-      })
-          .toList();
-
-      final response = await http.post(
-        Uri.parse('https://shreelalchand.com/logistics/generate-pdf-bill'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(selectedBillsData),
-      );
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        // Increment the bill ID after successful generation
-        setState(() {
-          currentBillId = (currentBillId ?? 0) + 1;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bill generated successfully')),
-        );
-        await _searchBills(); // Refresh the list
-      } else {
-        throw Exception('Failed to generate bill');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating bill: ${e.toString()}')),
-        );
-      }
-    }
-  }
 
   Widget _buildDateField({
     required String label,
     required DateTime? value,
-    required Function(DateTime?) onChanged,
+    required ValueChanged<DateTime?> onChanged,
   }) {
-    return TextFormField(
+    return TextField(
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
+        suffixIcon: const Icon(Icons.calendar_today),
       ),
       readOnly: true,
+      controller: TextEditingController(
+        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
+      ),
       onTap: () async {
         final date = await showDatePicker(
           context: context,
           initialDate: value ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
         );
         if (date != null) {
           onChanged(date);
         }
       },
-      controller: TextEditingController(
-        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
-      ),
     );
   }
 
@@ -378,261 +403,690 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
       },
     );
   }
-
-  Widget _buildResultsList() {
-    if (isLoading) {
-      return Center(child: CircularProgressIndicator());
-    }
-    if (bills.isEmpty) {
-      return Center(child: Text('No bills found'));
-    }
-
-    return Column(
+  Widget _buildLoadingOverlay({required Widget child}) {
+    return Stack(
       children: [
-        // Display current bill ID
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Current Bill ID:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+        child,
+        if (isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.3),
+            child: const Center(
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Processing...'),
+                    ],
                   ),
-                  Text(
-                    '#${DateTime.now().year}-${(bills.length + 1).toString().padLeft(4, '0')}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: bills.length,
-          itemBuilder: (context, index) {
-            final bill = bills[index];
-            return Card(
-              margin: EdgeInsets.only(bottom: 16),
-              child: CheckboxListTile(
-                value: selectedBills.contains(bill.truckNumber),
-                onChanged: (bool? value) {
-                  setState(() {
-                    if (value == true) {
-                      selectedBills.add(bill.truckNumber ?? '');
-                    } else {
-                      selectedBills.remove(bill.truckNumber ?? '');
-                    }
-                  });
-                },
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text('DO Number: ${bill.doNumber ?? 'N/A'}'),
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${bill.transactionStatus ?? 'N/A'}',
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Truck: ${bill.truckNumber ?? 'N/A'}',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Text(
-                          'Driver: ${bill.driverName ?? 'N/A'}',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'From: ${bill.destinationFrom ?? 'N/A'} → To: ${bill.destinationTo ?? 'N/A'}',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Card(
-                            color: Colors.grey[100],
-                            child: Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Weight Details',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Weight: ${(bill.weight ?? 0.0).toStringAsFixed(2)} tons',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  if ((bill.actualWeight ?? 0.0) > 0)
-                                    Text(
-                                      'Actual: ${(bill.actualWeight ?? 0.0).toStringAsFixed(2)} tons',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  if ((bill.differenceInWeight ?? 0.0) != 0)
-                                    Text(
-                                      'Diff: ${(bill.differenceInWeight ?? 0.0).toStringAsFixed(2)} tons',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Card(
-                            color: Colors.grey[100],
-                            child: Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Payment Details',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Freight: ₹${(bill.freight ?? 0.0).toStringAsFixed(2)}',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  Text(
-                                    'Diesel: ${(bill.diesel ?? 0.0).toStringAsFixed(2)}L (₹${(bill.dieselAmount ?? 0.0).toStringAsFixed(2)})',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  if ((bill.advance ?? 0.0) > 0)
-                                    Text(
-                                      'Advance: ₹${(bill.advance ?? 0.0).toStringAsFixed(2)}',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                isThreeLine: true,
-              ),
-            );
-          },
-        ),
-        if (bills.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Selected: ${selectedBills.length}/${bills.length}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          if (selectedBills.length == bills.length) {
-                            selectedBills.clear();
-                          } else {
-                            selectedBills = bills
-                                .map((bill) => bill.truckNumber ?? '')
-                                .toSet();
-                          }
-                        });
-                      },
-                      child: Text(
-                        selectedBills.length == bills.length
-                            ? 'Deselect All'
-                            : 'Select All',
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: selectedBills.isNotEmpty ? _generateBill : null,
-                  child: Text('Generate Bill'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 50),
-                  ),
-                ),
-              ],
             ),
           ),
       ],
     );
   }
+  Widget _buildBillCard(TripDetails bill) {
+    final isSelected = selectedTripIds.contains(bill.tripId);
+    final localDateTime = DateTime.now().toLocal();
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Generate Bill'),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: Row(
+            children: [
+              Checkbox(
+                value: isSelected,
+                onChanged: (bool? value) {
+                  setState(() {
+                    if (value == true) {
+                      selectedTripIds.add(bill.tripId ?? '');
+                      selectedBills.add(bill.truckNumber ?? '');
+                    } else {
+                      selectedTripIds.remove(bill.tripId ?? '');
+                      selectedBills.remove(bill.truckNumber ?? '');
+                    }
+                    hasSelectedItems = selectedBills.isNotEmpty;
+                  });
+                },
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Truck Number: ${bill.truckNumber ?? 'N/A'}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormat('dd MMM yyyy').format(localDateTime),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(width: 16),
+                        const Icon(Icons.access_time, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormat('hh:mm a').format(localDateTime),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           children: [
-            _buildSearchForm(),
-            SizedBox(height: 24),
-            _buildResultsList(),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(4),
+                  bottomRight: Radius.circular(4),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTripInformation(bill),
+                  const Divider(height: 32),
+                  _buildFinancialInformation(bill),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildTripInformation(TripDetails bill) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Trip Information',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 3,
+          children: [
+            _buildInfoRow('Trip ID', bill.tripId, isTripId: true),
+            _buildInfoRow('Username', bill.username),
+            _buildInfoRow('Profile', bill.profile),
+            _buildInfoRow('Driver', bill.driverName),
+            _buildInfoRow('Vendor', bill.vendor),
+            _buildInfoRow('From', bill.destinationFrom),
+            _buildInfoRow('To', bill.destinationTo),
+            _buildInfoRow('Status', bill.transactionStatus),
+            _buildInfoRow('DO Number', bill.doNumber),
+            _buildInfoRow('Truck Type', bill.truckType),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinancialInformation(TripDetails bill) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Financial Details',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 3,
+          children: [
+            _buildInfoRow('Weight', '${(bill.weight ?? 0.0).toStringAsFixed(2)} tons'),
+            _buildInfoRow('Actual Weight', '${(bill.actualWeight ?? 0.0).toStringAsFixed(2)} tons'),
+            _buildInfoRow('Weight Difference', '${(bill.differenceInWeight ?? 0.0).toStringAsFixed(2)} tons'),
+            _buildInfoRow('Freight', '₹${(bill.freight ?? 0.0).toStringAsFixed(2)}'),
+            _buildInfoRow('Diesel Amount', '₹${(bill.dieselAmount ?? 0.0).toStringAsFixed(2)}'),
+            _buildInfoRow('Advance', '₹${(bill.advance ?? 0.0).toStringAsFixed(2)}'),
+            _buildInfoRow('Diesel Slip Number', bill.dieselSlipNumber)
+          ],
+        ),
+      ],
+    );
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Generate Bill'),
+        actions: [
+          if (selectedTripIds.isNotEmpty)
+            isLoading
+                ? const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            )
+                : ElevatedButton.icon(
+              onPressed: handleGeneratePDF,
+              icon: const Icon(Icons.picture_as_pdf),
+              label: const Text('Generate Bill'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
+            ),
+        ],
+      ),
+      body: _buildLoadingOverlay(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSearchForm(),
+              const SizedBox(height: 24),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: bills.length,
+                itemBuilder: (context, index) => _buildBillCard(bills[index]),
+              ),
+              if (bills.isNotEmpty) _buildFooterSection(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Selected: ${selectedBills.length}/${bills.length}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    if (selectedBills.length == bills.length) {
+                      selectedBills.clear();
+                      selectedTripIds.clear();
+                    } else {
+                      selectedBills = bills
+                          .where((bill) => bill.truckNumber != null)
+                          .map((bill) => bill.truckNumber!)
+                          .toSet();
+                      selectedTripIds = bills
+                          .where((bill) => bill.tripId != null)
+                          .map((bill) => bill.tripId!)
+                          .toSet();
+                    }
+                    hasSelectedItems = selectedBills.isNotEmpty;
+                  });
+                },
+                child: Text(
+                  selectedBills.length == bills.length ? 'Deselect All' : 'Select All',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: hasSelectedItems ? handleGeneratePDF : null,
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 50),
+              backgroundColor: hasSelectedItems ? Theme.of(context).primaryColor : Colors.grey,
+            ),
+            child: Text(
+              'Generate PDF',
+              style: TextStyle(
+                color: hasSelectedItems ? Colors.white : Colors.grey[300],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // Widget _buildResultsList() {
+  //   if (isLoading) {
+  //     return const Center(child: CircularProgressIndicator());
+  //   }
+  //
+  //   return Column(
+  //     children: [
+  //       ListView.builder(
+  //         shrinkWrap: true,
+  //         physics: const NeverScrollableScrollPhysics(),
+  //         itemCount: bills.length,
+  //         itemBuilder: (context, index) {
+  //           final bill = bills[index];
+  //           final isSelected = selectedTripIds.contains(bill.tripId);
+  //
+  //           final localDateTime = DateTime.now().toLocal();
+  //
+  //           return Card(
+  //             margin: const EdgeInsets.symmetric(vertical: 8),
+  //             child: ExpansionTile(
+  //               title: Row(
+  //                 children: [
+  //                   Checkbox(
+  //                     value: isSelected,
+  //                     onChanged: (bool? value) {
+  //                       setState(() {
+  //                         if (value == true) {
+  //                           selectedTripIds.add(bill.tripId ?? '');
+  //                           selectedBills.add(bill.truckNumber ?? '');
+  //                         } else {
+  //                           selectedTripIds.remove(bill.tripId ?? '');
+  //                           selectedBills.remove(bill.truckNumber ?? '');
+  //                         }
+  //                         hasSelectedItems = selectedBills.isNotEmpty;
+  //                       });
+  //                     },
+  //                   ),
+  //                   const Text(
+  //                     'Truck Number: ',
+  //                     style: TextStyle(
+  //                       fontWeight: FontWeight.bold,
+  //                       fontSize: 16,
+  //                     ),
+  //                   ),
+  //                   Text(
+  //                     bill.truckNumber ?? 'N/A',
+  //                     style: const TextStyle(
+  //                       fontWeight: FontWeight.bold,
+  //                       fontSize: 16,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //               subtitle: Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   Row(
+  //                     children: [
+  //                       const Text(
+  //                         'Date: ',
+  //                         style: TextStyle(fontSize: 14),
+  //                       ),
+  //                       Text(
+  //                         DateFormat('dd MMM yyyy').format(localDateTime),
+  //                         style: const TextStyle(fontSize: 14),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                   const SizedBox(height: 4),
+  //                   Row(
+  //                     children: [
+  //                       const Text(
+  //                         'Time: ',
+  //                         style: TextStyle(fontSize: 14),
+  //                       ),
+  //                       Text(
+  //                         DateFormat('hh:mm a').format(localDateTime),
+  //                         style: const TextStyle(fontSize: 14),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ],
+  //               ),
+  //               children: [
+  //                 Padding(
+  //                   padding: const EdgeInsets.all(16),
+  //                   child: Column(
+  //                     crossAxisAlignment: CrossAxisAlignment.start,
+  //                     children: [
+  //                       Row(
+  //                         crossAxisAlignment: CrossAxisAlignment.start,
+  //                         children: [
+  //                           // Left Column
+  //                           Expanded(
+  //                             child: Column(
+  //                               crossAxisAlignment: CrossAxisAlignment.start,
+  //                               children: [
+  //                                 _buildInfoRow('Trip ID', bill.tripId, isTripId: true),
+  //                                 _buildInfoRow('DO Number', bill.doNumber?.toString()),
+  //                                 _buildInfoRow('Profile', bill.profile),
+  //                                 _buildInfoRow('Username', bill.username),
+  //                                 _buildInfoRow('From', bill.destinationFrom),
+  //                                 _buildInfoRow('Vendor', bill.vendor),
+  //                                 _buildInfoRow('To', bill.destinationTo),
+  //                                 _buildInfoRow('Driver', bill.driverName),
+  //                                 _buildInfoRow('Status', bill.transactionStatus),
+  //                                 _buildInfoRow('From', bill.destinationFrom),
+  //                                 _buildInfoRow('To', bill.destinationTo),
+  //                                 _buildInfoRow('Status', bill.transactionStatus),
+  //                                 _buildInfoRow('Truck Type', bill.truckType),
+  //                                 _buildInfoRow('Diesel Slip Number', bill.dieselSlipNumber),
+  //                               ],
+  //                             ),
+  //                           ),
+  //                           const SizedBox(width: 16),
+  //                           // Right Column
+  //                           Expanded(
+  //                             child: Column(
+  //                               crossAxisAlignment: CrossAxisAlignment.start,
+  //                               children: [
+  //                                 _buildInfoRow('Weight', bill.weight?.toString()),
+  //                                 _buildInfoRow('Advance', bill.advance?.toString()),
+  //                                 _buildInfoRow('Weight', '${(bill.weight ?? 0.0).toStringAsFixed(2)} tons'),
+  //                                 if ((bill.actualWeight ?? 0.0) > 0)
+  //                                   _buildInfoRow('Actual Weight', '${(bill.actualWeight ?? 0.0).toStringAsFixed(2)} tons'),
+  //                                 if ((bill.differenceInWeight ?? 0.0) != 0)
+  //                                   _buildInfoRow('Weight Difference', '${(bill.differenceInWeight ?? 0.0).toStringAsFixed(2)} tons'),
+  //                                 _buildInfoRow('Freight', '₹${(bill.freight ?? 0.0).toStringAsFixed(2)}'),
+  //                                 _buildInfoRow('Diesel Amount', bill.dieselAmount?.toString()),
+  //                                 _buildInfoRow('Diesel Slip Number', bill.dieselSlipNumber?.toString()),
+  //                                 if ((bill.advance ?? 0.0) > 0)
+  //                                   _buildInfoRow('Advance', '₹${(bill.advance ?? 0.0).toStringAsFixed(2)}'),
+  //                               ],
+  //                             ),
+  //                           ),
+  //                         ],
+  //                       ),
+  //                       const SizedBox(height: 16),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           );
+  //         },
+  //       ),
+  //       // Footer Section
+  //       if (bills.isNotEmpty)
+  //         Padding(
+  //           padding: const EdgeInsets.symmetric(vertical: 16),
+  //           child: Column(
+  //             children: [
+  //               Row(
+  //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //                 children: [
+  //                   Text(
+  //                     'Selected: ${selectedBills.length}/${bills.length}',
+  //                     style: const TextStyle(
+  //                       fontWeight: FontWeight.bold,
+  //                       fontSize: 16,
+  //                     ),
+  //                   ),
+  //                   TextButton(
+  //                     onPressed: () {
+  //                       setState(() {
+  //                         if (selectedBills.length == bills.length) {
+  //                           // Deselect all
+  //                           selectedBills.clear();
+  //                           selectedTripIds.clear();
+  //                         } else {
+  //                           // Select all
+  //                           selectedBills = bills
+  //                               .where((bill) => bill.truckNumber != null)
+  //                               .map((bill) => bill.truckNumber!)
+  //                               .toSet();
+  //                           selectedTripIds = bills
+  //                               .where((bill) => bill.tripId != null)
+  //                               .map((bill) => bill.tripId!)
+  //                               .toSet();
+  //                         }
+  //                         hasSelectedItems = selectedBills.isNotEmpty;
+  //                       });
+  //                     },
+  //                     child: Text(
+  //                       selectedBills.length == bills.length
+  //                           ? 'Deselect All'
+  //                           : 'Select All',
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //               const SizedBox(height: 16),
+  //               ElevatedButton(
+  //                 onPressed: hasSelectedItems ? handleGeneratePDF : null,
+  //                 style: ElevatedButton.styleFrom(
+  //                   minimumSize: const Size(double.infinity, 50),
+  //                   backgroundColor: hasSelectedItems
+  //                       ? Theme.of(context).primaryColor
+  //                       : Colors.grey,
+  //                 ),
+  //                 child: Text(
+  //                   'Generate PDF',
+  //                   style: TextStyle(
+  //                     color: hasSelectedItems ? Colors.white : Colors.grey[300],
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //     ],
+  //   );
+  // }
+
+  Widget _buildInfoRow(String label, String? value, {bool isTripId = false}) {
+    if (isTripId) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: () async {
+              try {
+                final searchService = ApiSearchService();
+                final tripDetails = await searchService.searchUserById(value ?? '');
+
+                if (!mounted) return;
+
+                if (tripDetails != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TruckDetailsScreen(
+                        username: tripDetails.username ?? '',
+                        initialTripDetails: tripDetails,
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('No trip details found for ID: $value'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error fetching trip details: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: Text(
+              value ?? 'N/A',
+              style: const TextStyle(
+                color: Colors.blue,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value ?? 'N/A',
+          style: const TextStyle(
+            fontSize: 16,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value ?? 'N/A',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget _buildInfoRow(String label, String? value) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(bottom: 4),
+  //     child: Row(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Text(
+  //           '$label: ',
+  //           style: const TextStyle(
+  //             fontSize: 14,
+  //             fontWeight: FontWeight.bold,
+  //           ),
+  //         ),
+  //         Expanded(
+  //           child: Text(
+  //             value ?? 'N/A',
+  //             style: const TextStyle(fontSize: 14),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
+  // @override
+  // Widget build(BuildContext context) {
+  //   return Scaffold(
+  //     appBar: AppBar(
+  //       title: Text('Generate Bill'),
+  //       actions: [
+  //         if (selectedTripIds.isNotEmpty)
+  //           isLoading
+  //               ? Padding(
+  //             padding: EdgeInsets.symmetric(horizontal: 16.0),
+  //             child: Center(
+  //               child: SizedBox(
+  //                 width: 20,
+  //                 height: 20,
+  //                 child: CircularProgressIndicator(
+  //                   strokeWidth: 2,
+  //                   color: Colors.white,
+  //                 ),
+  //               ),
+  //             ),
+  //           )
+  //               : ElevatedButton.icon(
+  //             onPressed: handleGeneratePDF,
+  //             icon: Icon(Icons.picture_as_pdf),
+  //             label: Text('Generate Bill'),
+  //             style: ElevatedButton.styleFrom(
+  //               backgroundColor: Colors.transparent,
+  //               elevation: 0,
+  //             ),
+  //           ),
+  //       ], // <-- Closing bracket for actions
+  //     ),
+  //     body: SingleChildScrollView(
+  //       padding: EdgeInsets.all(16.0),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.stretch,
+  //         children: [
+  //           _buildSearchForm(),
+  //           SizedBox(height: 24),
+  //           _buildResultsList(),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
+  //
 
   Widget _buildSearchForm() {
     return Form(
@@ -665,9 +1119,15 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
           SizedBox(height: 16),
           ElevatedButton(
             onPressed: _searchBills,
-            child: Text('Search'),
             style: ElevatedButton.styleFrom(
-              minimumSize: Size(double.infinity, 50),
+              minimumSize: const Size(double.infinity, 48),
+              backgroundColor: const Color(0xFF5C2F95), // Purple shade
+            ),
+            child: const Text(
+              "Submit",
+              style: TextStyle(
+                color: Colors.white, // Set text color to white
+              ),
             ),
           ),
         ],

@@ -46,15 +46,22 @@ class AuthService {
 
   Future<void> logout() async {
     try {
-      await http.post(
+      final response = await http.post(
         Uri.parse('$baseUrl/logout'),
         headers: {'Content-Type': 'application/json'},
       );
-      await setAuthToken(false);
+
+      if (response.statusCode == 200) {
+        await setAuthToken(false);
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Logout failed');
+      }
     } catch (e) {
       throw Exception('Logout failed: $e');
     }
   }
+
 
   Future<bool> checkAuth() async {
     try {

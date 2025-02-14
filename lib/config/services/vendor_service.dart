@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../model/vendor_model.dart';
 
 class VendorService {
-  static const String baseUrl = 'https://shreelalchand.com';
+  static const String baseUrl = 'https://shreelalchand.com/logistics';
 
   Future<List<VendorModel>> getVendorList() async {
     try {

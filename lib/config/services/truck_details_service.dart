@@ -1,13 +1,17 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../model/truck_details_model.dart';
+import 'package:http/http.dart' as http;
 
 class LogisticsService {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'https://shreelalchand.com',
+    baseUrl: 'https://shreelalchand.com/logistics',
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
   ));
+
 
   Future<List<String>> fetchTrucks(String query) async {
     try {
@@ -75,9 +79,52 @@ class LogisticsService {
 
   Future<void> submitTruckDetails(TripDetails details) async {
     try {
-      await _dio.post('/reports', data: details.toJson());
+      Response response= await _dio.post(
+          'https://shreelalchand.com/logistics/reports',
+          data: details.toJson()
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Truck details submitted successfully');
+      } else {
+        throw Exception('Failed to submit truck details: ${response.statusCode}');
+      }
     } catch (e) {
       throw Exception('Failed to submit truck details');
     }
   }
+
+
+
+  //add changes here
+  // Future<void> updateTruckDetails(TripDetails details) async {
+  //   try {
+  //     Map<String, dynamic> updateData = details.toJson();
+  //     Response response = await _dio.post(
+  //         'http://10.0.2.2:5000/logistics/api/trip',
+  //         data: updateData,
+  //         options: Options(
+  //           headers: {'Content-Type': 'application/json'},
+  //         ),
+  //     );
+  //     if (response.statusCode == 200) {
+  //       print('Truck details updated successfully');
+  //     } else {
+  //       throw Exception(
+  //           'Failed to update truck details: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     throw Exception('Failed to submit truck details');
+  //   }
+  // }
+
+  // static Future<void> updateTruckDetails(TripDetails details) async {
+  //   final response = await http.post(
+  //     Uri.parse('http://10.0.2.2:5000/logistics/api/trip'),
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: json.encode(details.toJson()),
+  //   );
+  //   if (response.statusCode != 201) {
+  //     throw Exception('Failed to add freight data');
+  //   }
+  // }
 }

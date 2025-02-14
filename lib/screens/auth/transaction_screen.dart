@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../config/model/truck_details_model.dart';
+import '../../config/services/search_service.dart';
 import '../../config/services/transaction_service.dart';
+import 'home_screen.dart';
 
 class TransactionsScreen extends StatefulWidget {
   @override
@@ -173,28 +175,33 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       });
     }
   }
-
-  Future<void> _selectDate(BuildContext context, bool isStart) async {
-    final DateTime now = DateTime.now();
-    final DateTime lastValidDate = DateTime(2025);
-    final DateTime initialDate = now.isAfter(lastValidDate) ? lastValidDate : now;
-
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2000),
-      lastDate: lastValidDate,
-    );
-
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          startDate = picked;
-        } else {
-          endDate = picked;
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onChanged,
+  }) {
+    return TextField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        suffixIcon: const Icon(Icons.calendar_today),
+      ),
+      readOnly: true,
+      controller: TextEditingController(
+        text: value != null ? DateFormat('yyyy-MM-dd').format(value) : '',
+      ),
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (date != null) {
+          onChanged(date);
         }
-      });
-    }
+      },
+    );
   }
 
   Future<void> _showEditDialog(TripDetails trip) async {
@@ -406,32 +413,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Widget _buildDateSelectionSection() {
     return Padding(
       padding: EdgeInsets.all(16.0),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: TextButton.icon(
-              onPressed: () => _selectDate(context, true),
-              icon: Icon(Icons.calendar_today),
-              label: Text(
-                startDate == null
-                    ? 'Start Date'
-                    : DateFormat('yyyy-MM-dd').format(startDate!),
+          Row(
+            children: [
+              Expanded(
+                child: _buildDateField(
+                  label: 'Start Date',
+                  value: startDate,
+                  onChanged: (date) => setState(() => startDate = date),
+                ),
               ),
-            ),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: TextButton.icon(
-              onPressed: () => _selectDate(context, false),
-              icon: Icon(Icons.calendar_today),
-              label: Text(
-                endDate == null
-                    ? 'End Date'
-                    : DateFormat('yyyy-MM-dd').format(endDate!),
+              SizedBox(width: 16),
+              Expanded(
+                child: _buildDateField(
+                  label: 'End Date',
+                  value: endDate,
+                  onChanged: (date) => setState(() => endDate = date),
+                ),
               ),
-            ),
+            ],
           ),
-          SizedBox(width: 16),
+          SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
               if (startDate == null || endDate == null) {
@@ -450,12 +453,22 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
               fetchTransactions();
             },
-            child: Text('Search'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              backgroundColor: const Color(0xFF5C2F95), // Purple shade
+            ),
+            child: const Text(
+              "Submit",
+              style: TextStyle(
+                color: Colors.white, // Set text color to white
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+
 
   Widget _buildTransactionsList() {
     if (isLoading) {
@@ -498,98 +511,112 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               itemBuilder: (context, tripIndex) {
                 final trip = dayTrips[tripIndex];
                 return Card(
+                  elevation: 4,
                   margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Left side: Checkbox and Time
-                            Column(
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      title: Row(
+                        children: [
+                          Checkbox(
+                            value: selectedTripIds.contains(trip.id),
+                            onChanged: (bool? value) {
+                              setState(() {
+                                if (value == true && trip.id != null) {
+                                  print('Adding ID: ${trip.id}'); // Debug print
+                                  selectedTripIds.add(trip.id!);
+                                } else if (trip.id != null) {
+                                  selectedTripIds.remove(trip.id!);
+                                }
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Checkbox
-                                Checkbox(
-                                  value: selectedTripIds.contains(trip.id),
-                                  onChanged: (bool? value) {
-                                    setState(() {
-                                      if (value == true && trip.id != null) {
-                                        print('Adding ID: ${trip.id}'); // Debug print
-                                        selectedTripIds.add(trip.id!);
-                                      } else if (trip.id != null) {
-                                        selectedTripIds.remove(trip.id!);
-                                      }
-                                    });
-                                  },
-                                ),
-                                // Time
                                 Text(
-                                  DateFormat('HH:mm').format(trip.createdAt ?? DateTime.now()),
+                                  'Truck Number: ${trip.truckNumber ?? "N/A"}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                   ),
                                 ),
-                              ],
-                            ),
-                            // Right side: Edit icon and Amount
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                // Edit icon
-                                IconButton(
-                                  icon: Icon(Icons.edit),
-                                  onPressed: () => _showEditDialog(trip),
+                                SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time, size: 16),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      DateFormat('HH:mm').format(trip.createdAt ?? DateTime.now()),
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                  ],
                                 ),
-                                // Amount
+                                SizedBox(height: 4),
                                 Text(
-                                  'Amount: ₹${trip.amount ?? '0.00'}',
+                                  'Amount: ₹${trip.amount ?? "0.00"}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    fontSize: 12,
                                     color: Theme.of(context).primaryColor,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ],
                             ),
-                          ],
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.edit),
+                            onPressed: () => _showEditDialog(trip),
+                          ),
+                        ],
+                      ),
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(4),
+                              bottomRight: Radius.circular(4),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSection(
+                                'Trip Information',
+                                [
+                                  _buildInfoRow('Trip ID', trip.tripId ?? '-', isTripId: true),
+                                  _buildInfoRow('UserName', trip.username ?? '-'),
+                                  _buildInfoRow('Profile', trip.profile ?? '-'),
+                                  _buildInfoRow('Vendor', trip.vendor ?? '-'),
+                                  _buildInfoRow('Destination', trip.destinationTo ?? '-'),
+                                ],
+                              ),
+                              Divider(height: 32),
+                              _buildSection(
+                                'Financial Details',
+                                [
+                                  _buildFinancialRow('Weight', '${trip.weight ?? "-"}', 'Actual Wt.', '${trip.actualWeight ?? "-"}'),
+                                  _buildFinancialRow('Freight', '₹${trip.freight ?? "-"}', 'Rate', '₹${trip.rate ?? "-"}'),
+                                  _buildFinancialRow('Diesel', '₹${trip.dieselAmount ?? "-"}', 'Advance', '₹${trip.advance ?? "-"}'),
+                                  _buildFinancialRow('Toll', '₹${trip.toll ?? "-"}', 'TDS', '${trip.tdsRate ?? "-"}%'),
+                                ],
+                              ),
+                              Divider(height: 32),
+                              _buildSection(
+                                'Additional Information',
+                                [
+                                  _buildInfoRow('Bill ID', trip.billingId ?? '-'),
+                                  _buildInfoRow('Transaction Status', trip.transactionStatus ?? '-'),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        Divider(),
-                        _buildInfoRow('Trip ID', trip.tripId ?? '-'),
-                        _buildInfoRow('UserName', trip.username ?? '-'),
-                        _buildInfoRow('Profile', trip.profile ?? '-'),
-                        _buildInfoRow('Vendor', trip.vendor ?? '-'),
-                        _buildInfoRow('Truck No.', trip.truckNumber ?? '-'),
-                        _buildInfoRow('Destination', trip.destinationTo ?? '-'),
-                        Row(
-                          children: [
-                            Expanded(child: _buildInfoRow('Weight', '${trip.weight ?? '-'}')),
-                            Expanded(child: _buildInfoRow('Actual Wt.', '${trip.actualWeight ?? '-'}')),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: _buildInfoRow('Freight', '₹${trip.freight ?? '-'}')),
-                            Expanded(child: _buildInfoRow('Rate', '₹${trip.rate ?? '-'}')),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: _buildInfoRow('Diesel', '₹${trip.dieselAmount ?? '-'}')),
-                            Expanded(child: _buildInfoRow('Advance', '₹${trip.advance ?? '-'}')),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: _buildInfoRow('Toll', '₹${trip.toll ?? '-'}')),
-                            Expanded(child: _buildInfoRow('TDS', '${trip.tdsRate ?? '-'}%')),
-                          ],
-                        ),
-                        _buildInfoRow('Bill ID', trip.billingId ?? '-'),
-                        _buildInfoRow('Transaction Status', trip.transactionStatus ?? '-'),
                       ],
                     ),
                   ),
@@ -602,7 +629,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
+        ),
+        SizedBox(height: 16),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildFinancialRow(String label1, String value1, String label2, String value2) {
+    return Row(
+      children: [
+        Expanded(child: _buildInfoRow(label1, value1)),
+        Expanded(child: _buildInfoRow(label2, value2)),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {bool isTripId = false}) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -619,7 +673,49 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ),
           Expanded(
-            child: Text(
+            child: isTripId
+                ? InkWell(
+              onTap: () async {
+                try {
+                  final searchService = ApiSearchService();
+                  final tripDetails = await searchService.searchUserById(value);
+
+                  if (tripDetails != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TruckDetailsScreen(
+                          username: tripDetails.username,
+                          initialTripDetails: tripDetails,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('No trip details found for ID: $value'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error fetching trip details: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blue,
+                ),
+              ),
+            )
+                : Text(
               value,
               style: TextStyle(
                 fontWeight: FontWeight.w500,

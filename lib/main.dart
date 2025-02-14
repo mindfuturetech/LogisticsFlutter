@@ -1,20 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:logistics/screens/auth/auth_provider.dart';
 import 'package:logistics/screens/auth/business_screen.dart';
 import 'package:logistics/screens/auth/freight_master_screen.dart';
 import 'package:logistics/screens/auth/generate_bill_screen.dart';
 import 'package:logistics/screens/auth/home_screen.dart';
 import 'package:logistics/screens/auth/reports_screen.dart';
+import 'package:logistics/screens/auth/todays_list_screen.dart';
 import 'package:logistics/screens/auth/transaction_screen.dart';
 import 'package:logistics/screens/auth/vehicle_list_screen.dart';
 import 'package:logistics/screens/auth/vendor_screen.dart';
 import 'package:logistics/screens/auth/login_screen.dart';
 import 'package:logistics/screens/auth/signup_screen.dart';
 import 'package:logistics/screens/auth/reset_password_screen.dart';
+import 'package:provider/provider.dart';
 import 'config/services/auth_service.dart';
+import 'package:logistics/screens/auth/notification_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -26,6 +37,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Logistics App',
       navigatorKey: navigatorKey,
       theme: ThemeData(
@@ -35,7 +47,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/login',
       onGenerateRoute: (settings) {
         // Add debug print to track navigation
-        print('Navigating to: ${settings.name}');
+        print('Navigating to: ${settings.name} with arguments: ${settings.arguments}');
 
         switch (settings.name) {
           case '/':
@@ -45,13 +57,26 @@ class MyApp extends StatelessWidget {
           case '/signup':
             return _buildPageRoute(SignUpScreen());
           case '/home':
-            return _buildPageRoute(TruckDetailsScreen());
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  TruckDetailsScreen(username: settings.arguments as String?),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                const transitionDuration = Duration(milliseconds: 300);
+                var tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                    .chain(CurveTween(curve: Curves.easeInOut));
+                var offsetAnimation = animation.drive(tween);
+                return SlideTransition(position: offsetAnimation, child: child);
+              },
+            );
+         
+          case '/todaylist':
+            return _buildPageRoute(TodaysListScreen());
           case '/reset-password':
             return _buildPageRoute(const ResetPasswordScreen());
           case '/freight':
             return _buildPageRoute(FreightScreen());
           case '/vehicle':
-            return _buildPageRoute(const VehicleScreen());
+            return _buildPageRoute(VehicleScreen());
           case '/vendor':
             return _buildPageRoute(VendorScreen());
           case '/reports':
