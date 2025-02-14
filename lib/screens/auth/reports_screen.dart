@@ -36,6 +36,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   final FocusNode _vendorFocusNode = FocusNode();
   final FocusNode _truckFocusNode = FocusNode();
 
+  OverlayEntry? _vendorOverlay;
+  OverlayEntry? _truckOverlay;
+  final LayerLink _vendorLayerLink = LayerLink();
+  final LayerLink _truckLayerLink = LayerLink();
+
   List<TripDetails> _reports = [];
   bool _isLoading = false;
   DateTime? _startDate;
@@ -51,6 +56,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String? selectedStatus;
   TripDetails? selectedReport;
   bool _isExporting = false;
+
 
   @override
   void initState() {
@@ -74,6 +80,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _truckController.dispose();
     _vendorFocusNode.dispose();
     _truckFocusNode.dispose();
+    _removeVendorOverlay();
+    _removeTruckOverlay();
     super.dispose();
   }
   void _setupListeners() {
@@ -126,6 +134,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
   //     _showError('Failed to load dropdown data: ${e.toString()}');
   //   }
   // }
+  void _removeVendorOverlay() {
+    _vendorOverlay?.remove();
+    _vendorOverlay = null;
+  }
+
+  void _removeTruckOverlay() {
+    _truckOverlay?.remove();
+    _truckOverlay = null;
+  }
   Future<String> _getDownloadPath() async {
     if (Platform.isAndroid) {
       return '/storage/emulated/0/Download';
@@ -414,9 +431,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+     return GestureDetector(
       onTap: () {
-        // Hide suggestions when tapping outside
+        _removeVendorOverlay();
+        _removeTruckOverlay();
         _vendorFocusNode.unfocus();
         _truckFocusNode.unfocus();
         setState(() {
@@ -533,50 +551,65 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildVendorInput() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        children: [
-          TextField(
-            controller: _vendorController,
-            decoration: InputDecoration(
-              labelText: 'Vendor',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  setState(() {
-                    _vendorController.clear();
-                    _showVendorSuggestions = false;
-                  });
-                },
-              ),
+    return CompositedTransformTarget(
+      link: _vendorLayerLink,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        child: TextField(
+          controller: _vendorController,
+          focusNode: _vendorFocusNode,
+          decoration: InputDecoration(
+            labelText: 'Vendor',
+            border: const OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () {
+                setState(() {
+                  _vendorController.clear();
+                  _showVendorSuggestions = false;
+                  _removeVendorOverlay();
+                });
+              },
             ),
-            onTap: () {
-              setState(() {
-                _showVendorSuggestions = true;
-                _showTruckSuggestions = false;
-              });
-            },
           ),
-          if (_showVendorSuggestions && _getFilteredVendors().isNotEmpty)
-            Container(
+          onTap: () {
+            _removeTruckOverlay();
+            setState(() {
+              _showVendorSuggestions = true;
+              _showTruckSuggestions = false;
+              if (_getFilteredVendors().isNotEmpty) {
+                _showVendorOverlay();
+              }
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showVendorOverlay() {
+    _removeVendorOverlay();
+
+    final overlay = OverlayEntry(
+      builder: (context) => Positioned(
+        width: _vendorLayerLink.leaderSize?.width,
+        child: CompositedTransformFollower(
+          link: _vendorLayerLink,
+          showWhenUnlinked: false,
+          offset: const Offset(0, 60),
+          child: Material(
+            elevation: 8,
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+            child: Container(
               constraints: const BoxConstraints(maxHeight: 200),
-              margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
                 border: Border.all(color: Colors.grey),
                 borderRadius: BorderRadius.circular(4),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
               child: ListView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
                 itemCount: _getFilteredVendors().length,
                 itemBuilder: (context, index) {
                   final vendor = _getFilteredVendors()[index];
@@ -586,62 +619,82 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       setState(() {
                         _vendorController.text = vendor;
                         _showVendorSuggestions = false;
+                        _removeVendorOverlay();
                       });
                     },
                   );
                 },
               ),
             ),
-        ],
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlay);
+    _vendorOverlay = overlay;
+  }
+
+  Widget _buildTruckInput() {
+    return CompositedTransformTarget(
+      link: _truckLayerLink,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        child: TextField(
+          controller: _truckController,
+          focusNode: _truckFocusNode,
+          decoration: InputDecoration(
+            labelText: 'Truck Number',
+            border: const OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () {
+                setState(() {
+                  _truckController.clear();
+                  _showTruckSuggestions = false;
+                  _removeTruckOverlay();
+                });
+              },
+            ),
+          ),
+          onTap: () {
+            _removeVendorOverlay();
+            setState(() {
+              _showTruckSuggestions = true;
+              _showVendorSuggestions = false;
+              if (_getFilteredTrucks().isNotEmpty) {
+                _showTruckOverlay();
+              }
+            });
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildTruckInput() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        children: [
-          TextField(
-            controller: _truckController,
-            decoration: InputDecoration(
-              labelText: 'Truck Number',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  setState(() {
-                    _truckController.clear();
-                    _showTruckSuggestions = false;
-                  });
-                },
-              ),
-            ),
-            onTap: () {
-              setState(() {
-                _showTruckSuggestions = true;
-                _showVendorSuggestions = false;
-              });
-            },
-          ),
-          if (_showTruckSuggestions && _getFilteredTrucks().isNotEmpty)
-            Container(
+  void _showTruckOverlay() {
+    _removeTruckOverlay();
+
+    final overlay = OverlayEntry(
+      builder: (context) => Positioned(
+        width: _truckLayerLink.leaderSize?.width,
+        child: CompositedTransformFollower(
+          link: _truckLayerLink,
+          showWhenUnlinked: false,
+          offset: const Offset(0, 60),
+          child: Material(
+            elevation: 8,
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+            child: Container(
               constraints: const BoxConstraints(maxHeight: 200),
-              margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
                 border: Border.all(color: Colors.grey),
                 borderRadius: BorderRadius.circular(4),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
               child: ListView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
                 itemCount: _getFilteredTrucks().length,
                 itemBuilder: (context, index) {
                   final truck = _getFilteredTrucks()[index];
@@ -651,17 +704,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       setState(() {
                         _truckController.text = truck;
                         _showTruckSuggestions = false;
+                        _removeTruckOverlay();
                       });
                     },
                   );
                 },
               ),
             ),
-        ],
+          ),
+        ),
       ),
     );
-  }
 
+    Overlay.of(context).insert(overlay);
+    _truckOverlay = overlay;
+  }
 
 
 

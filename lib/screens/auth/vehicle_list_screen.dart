@@ -11,7 +11,7 @@ import 'package:open_file/open_file.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://13.61.234.145/logistics';
+  static const String baseUrl = 'https://shreelalchand.com/logistics';
 
   // You can add other API-related methods here if needed
   static String getDownloadUrl(String truckNo, String documentType) {

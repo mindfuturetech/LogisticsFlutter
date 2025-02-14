@@ -8,9 +8,9 @@ class FreightScreen extends StatefulWidget {
 }
 
 class _FreightScreenState extends State<FreightScreen> {
-  final String getFreightDataUrl = "http://13.61.234.145/logistics/list-freight";
-  final String insertFreightDataUrl = "http://13.61.234.145/logistics/add-freight";
-  final String updateFreightDataUrl = "http://13.61.234.145/logistics/update-freight";
+  final String getFreightDataUrl = "https://shreelalchand.com/logistics/list-freight";
+  final String insertFreightDataUrl = "https://shreelalchand.com/logistics/add-freight";
+  final String updateFreightDataUrl = "https://shreelalchand.com/logistics/update-freight";
 
   List<Map<String, dynamic>> _freightList = [];
   final _formKey = GlobalKey<FormState>();
