@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,6 +18,14 @@ class _LoginScreenState extends State<LoginScreen> {
   String _errorMessage = '';
   bool _obscurePassword = true;
 
+  Future<void> _saveAuthData(String profile) async {
+    final prefs = await SharedPreferences.getInstance();
+    // await prefs.setString('auth_token', token);
+    // await prefs.setString('user_profile', profile.toJson());  // Assuming toJson returns a string
+    await prefs.setString('profile', profile);
+    await prefs.setBool('is_logged_in', true);
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -25,12 +34,55 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = '';
     });
 
+    // try {
+    //   await _authService.login(_username, _password);
+    //   // Navigator.of(context).pushReplacementNamed('/home');
+    //   // Pass the username when navigating to home screen
+    //   print('Navigating to home with username: $_username');
+    //   Navigator.of(context).pushReplacementNamed('/home', arguments: _username);
+    //
+    // } catch (e) {
+    //   setState(() {
+    //     _errorMessage = e.toString();
+    //   });
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text(_errorMessage),
+    //       backgroundColor: Colors.red,
+    //     ),
+    //   );
+    // } finally {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+    // }
+
+    //new code
     try {
-      await _authService.login(_username, _password);
-      // Navigator.of(context).pushReplacementNamed('/home');
-      // Pass the username when navigating to home screen
-      print('Navigating to home with username: $_username');
-      Navigator.of(context).pushReplacementNamed('/home', arguments: _username);
+      final authResponse = await _authService.login(_username, _password);
+
+      // Extract token and role from response
+      // final token = authResponse['token'];
+      final profile = authResponse['profile']; // Expecting 'Accountant' or 'Manager'
+
+      // final profile = UserProfile(
+      //   username: _username,
+      //   role: userRole,
+      // );
+
+      // Save the auth data
+      await _saveAuthData( profile);
+
+      // // Navigate based on role
+      // _navigateBasedOnRole(profile);
+      Navigator.of(context).pushReplacementNamed(
+          '/home',
+          // arguments: _username
+          arguments: {
+           'username': _username,
+           'profile': profile,
+          },
+      );
 
     } catch (e) {
       setState(() {
