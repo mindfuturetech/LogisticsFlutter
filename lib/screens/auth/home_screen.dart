@@ -567,7 +567,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
               ),
               _buildTextFormField(
                 controller: _tdsRateController,
-                label: 'tds Rate',
+                label: 'TDS Rate',
                 keyboardType: TextInputType.number,
               ),
               _buildTextFormField(
