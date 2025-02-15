@@ -11,7 +11,7 @@ class EnvironmentConfig {
   static String get apiBaseUrl {
     switch (environment) {
       case Environment.development:
-        return 'http://13.61.234.145/logistics';
+        return 'http://shreelalchand.com/logistics';
       case Environment.staging:
         return 'https://staging-server.com/logistics';
       case Environment.production:

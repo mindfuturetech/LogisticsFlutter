@@ -425,6 +425,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         });
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: const Text('Reports'),
           actions: [
@@ -475,6 +476,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min, // Prevent unnecessary expansion
                   children: [
                     Row(
                       children: [
@@ -496,13 +498,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(child: _buildVendorInput()),
-                        const SizedBox(width: 14),
-                        Expanded(child: _buildTruckInput()),
-                      ],
-                    ),
+                    // Row(
+                    //   children: [
+                    //     Expanded(child: _buildVendorInput()),
+                    //     const SizedBox(width: 14),
+                    //     Expanded(child: _buildTruckInput()),
+                    //   ],
+                    // ),
+                    
                     const SizedBox(height: 14),
                     ElevatedButton(
                       onPressed: _fetchReports,

@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../config/model/truck_details_model.dart';
 
 class BillService {
-  static const String baseUrl = 'http://13.61.234.145/logistics';
+  static const String baseUrl = 'http://shreelalchand.com/logistics';
 
   Future<List<TripDetails>> getBillList({
     DateTime? startDate,
