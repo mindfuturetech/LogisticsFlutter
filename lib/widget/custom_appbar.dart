@@ -199,6 +199,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       profile = prefs.getString('profile');
+
     });
   }
 
