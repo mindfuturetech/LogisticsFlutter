@@ -283,7 +283,8 @@ class _VendorScreenState extends State<VendorScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.percent),
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true),
                 validator: (value) {
                   if (value?.isEmpty ?? true) return 'Please enter TDS rate';
                   if (double.tryParse(value!) == null) {
@@ -323,10 +324,14 @@ class _VendorScreenState extends State<VendorScreen> {
                 child: ElevatedButton.icon(
                   onPressed: isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5C2F95), // Purple background
-                    foregroundColor: Colors.white, // White text and icon color
-                    disabledBackgroundColor: Colors.grey, // Grey background when disabled
-                    disabledForegroundColor: Colors.white70, // Light white text/icon when disabled
+                    backgroundColor: const Color(0xFF5C2F95),
+                    // Purple background
+                    foregroundColor: Colors.white,
+                    // White text and icon color
+                    disabledBackgroundColor: Colors.grey,
+                    // Grey background when disabled
+                    disabledForegroundColor: Colors
+                        .white70, // Light white text/icon when disabled
                   ),
                   icon: isLoading
                       ? const SizedBox(
@@ -340,7 +345,8 @@ class _VendorScreenState extends State<VendorScreen> {
                       : const Icon(Icons.add_business),
                   label: const Text(
                     'Add Vendor',
-                    style: TextStyle(color: Colors.white), // Ensure text is white
+                    style: TextStyle(
+                        color: Colors.white), // Ensure text is white
                   ),
                 ),
               ),
@@ -376,40 +382,51 @@ class _VendorScreenState extends State<VendorScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildForm(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.business, color: Colors.blue),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Vendor List',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Calculate remaining height after form and header
+          final listHeight = constraints.maxHeight -
+              (MediaQuery
+                  .of(context)
+                  .size
+                  .height * 0.45); // Adjust this factor as needed
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildForm(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.business, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Vendor List',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${vendorList.length} vendors',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  Text(
-                    '${vendorList.length} vendors',
-                    style: const TextStyle(color: Colors.grey),
+                ),
+                SizedBox(
+                  height: listHeight,
+                  child: RefreshIndicator(
+                    onRefresh: _loadVendorData,
+                    child: _buildVendorList(),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            SizedBox(
-              height: 400, // Adjust this height as needed
-              child: RefreshIndicator(
-                onRefresh: _loadVendorData,
-                child: _buildVendorList(),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

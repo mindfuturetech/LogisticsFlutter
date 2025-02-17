@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:logistics/widget/custom_appbar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/truck_details_service.dart';
@@ -11,9 +12,15 @@ import '../../widget/custom_drawer.dart';
 
 class TruckDetailsScreen extends StatefulWidget {
   final dynamic username;
+  final String? profile;  // Add profile parameter
   final TripDetails? initialTripDetails;
 
-  const TruckDetailsScreen({Key? key, this.username,this.initialTripDetails,}) : super(key: key);
+  const TruckDetailsScreen({
+    Key? key,
+    this.username,
+    this.initialTripDetails,
+    this.profile,  // Add to constructor
+  }) : super(key: key);
 
   @override
   State<TruckDetailsScreen> createState() => _TruckDetailsScreenState();
@@ -28,6 +35,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   TripDetails? _truckData;
   bool searchCalled=false;
   late String username;
+  String? profile;  // Add profile variable
 
 
   String baseUrl = 'https://shreelalchand.com/logistics';
@@ -95,10 +103,19 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
     }
 
     username = widget.username?.toString() ?? "Guest";
-    print("Received username in initState: ${widget.username}"); // Debugging
+    // profile = widget.profile;  // Initialize profile
+    _loadProfile(); // Load profile from SharedPreferences
     fetchDestinationData();
     weightController.addListener(_onWeightChanged);
     _freightController.text = '0.00';
+  }
+
+  Future<void> _loadProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      profile = prefs.getString('profile');
+      print('Drawer loaded profile: $profile'); // Debug print
+    });
   }
 
   Future<void> fetchDestinationData() async {
@@ -386,9 +403,11 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
         child: CustomAppBar(
           scaffoldKey: _scaffoldKey,
           onTruckFound: _updateFormWithTruck,
+          // profile: profile,  // Pass the profile here
         ),
       ),
-      drawer: const CustomDrawer(),
+      // drawer: const CustomDrawer(),
+      drawer: CustomDrawer(),
 
       // Main Content
       body: SingleChildScrollView(
@@ -547,7 +566,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
               ),
               _buildTextFormField(
                 controller: _tdsRateController,
-                label: 'tds Rate',
+                label: 'TDS Rate',
                 keyboardType: TextInputType.number,
               ),
               _buildTextFormField(
@@ -797,7 +816,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
           tripId: _editingId,
           truckNumber: truckNumberController.text,
           username:username,
-          profile:username,
+          profile:profile,
           doNumber: _doNumberController.text,
           // transactionStatus:selectedTransactionStatus,
           transactionStatus: selectedTransactionStatus ?? 'Open',

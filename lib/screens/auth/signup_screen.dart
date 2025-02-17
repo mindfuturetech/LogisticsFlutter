@@ -155,8 +155,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   constraints: const BoxConstraints(maxWidth: 400),
                   padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withOpacity(0.95),
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 0),
+                        spreadRadius: 0,
+                      ),
+                    ],
                   ),
                   child: Form(
                     key: _formKey,
@@ -177,7 +185,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         const SizedBox(height: 24),
                         Text(
                           'Sign Up',
-                          style: Theme.of(context).textTheme.headlineMedium,
+                          style: Theme
+                              .of(context)
+                              .textTheme
+                              .headlineMedium,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
@@ -190,6 +201,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             prefixIcon: const Icon(Icons.person),
                             filled: true,
                             fillColor: Colors.white,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF4CAF50),
+                              ),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -209,8 +232,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             prefixIcon: const Icon(Icons.account_circle),
                             filled: true,
                             fillColor: Colors.white,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF4CAF50),
+                              ),
+                            ),
                           ),
-                          value: _selectedProfile.isEmpty ? null : _selectedProfile,
+                          value: _selectedProfile.isEmpty
+                              ? null
+                              : _selectedProfile,
                           items: _profiles.map((String profile) {
                             return DropdownMenuItem<String>(
                               value: profile,
@@ -246,11 +283,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                              : const Text('Sign Up'),
+                              : const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/login'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/login'),
                           child: const Text('Already have an account? Login'),
                         ),
                       ],

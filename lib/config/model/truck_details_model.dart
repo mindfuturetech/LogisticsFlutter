@@ -123,7 +123,7 @@ class TripDetails {
     final Map<String, dynamic> data = {};
     if (tripId != null) data['TripId'] = tripId;
     if (username != null) data['username'] = username;
-    if (profile != null) data['Profile'] = profile;
+    if (profile != null) data['userProfile'] = profile;
     if (truckNumber != null) data['TruckNumber'] = truckNumber;
     if (doNumber != null) data['DONumber'] = doNumber;
     if (driverName != null) data['DriverName'] = driverName;
