@@ -48,11 +48,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
             decoration: BoxDecoration(color: Colors.black),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 Text(
                   'Menu',
-                  style: TextStyle(color: Colors.white, fontSize: 30),
+                  style: TextStyle(color: Colors.white, fontSize: 34),
                 ),
                 // Text(
                 //   "Profile: $profile",
@@ -66,14 +66,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   // mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Text(
-                      "Profile: ${profile ?? 'No profile'}",
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
+                    // Text(
+                    //   "Profile: ${profile ?? 'No profile'}",
+                    //   style: TextStyle(fontSize: 18, color: Colors.white),
+                    // ),
                       // Add some spacing between the two texts
                     Text(
-                      "User Name: ${username ?? 'Guest'}",
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      "Hello, ${username ?? 'Guest'}",
+                      style: TextStyle(fontSize: 20, color: Colors.white),
                     ),
                   ],
                 ),
