@@ -18,11 +18,13 @@ class _LoginScreenState extends State<LoginScreen> {
   String _errorMessage = '';
   bool _obscurePassword = true;
 
-  Future<void> _saveAuthData(String profile) async {
+  Future<void> _saveAuthData(String profile,String username) async {
     final prefs = await SharedPreferences.getInstance();
     // await prefs.setString('auth_token', token);
     // await prefs.setString('user_profile', profile.toJson());  // Assuming toJson returns a string
     await prefs.setString('profile', profile);
+    await prefs.setString('_username', username);  // Changed from 'username' to '_username'
+    print(username);
     await prefs.setBool('is_logged_in', true);
   }
 
@@ -71,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // );
 
       // Save the auth data
-      await _saveAuthData( profile);
+      await _saveAuthData( profile,_username);
 
       // // Navigate based on role
       // _navigateBasedOnRole(profile);

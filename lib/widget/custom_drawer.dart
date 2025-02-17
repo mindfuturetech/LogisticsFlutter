@@ -10,7 +10,8 @@ class CustomDrawer extends StatefulWidget {
 }
 
 class _CustomDrawerState extends State<CustomDrawer> {
-  String? profile;
+  String? profile = "Loading..."; // Default value
+  String? username = "Loading..."; // Default value
 
   static final Map<String, List<String>> profileRestrictions = {
     'loadingManager': ['/freight','/vehicle','/vendor','/reports','/generate-bill', '/business', '/transactions'],
@@ -26,7 +27,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      profile = prefs.getString('profile');
+      profile = prefs.getString('profile') ?? "No profile available";
+      username = prefs.getString('_username') ;
     });
   }
 
@@ -42,11 +44,41 @@ class _CustomDrawerState extends State<CustomDrawer> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const DrawerHeader(
+           DrawerHeader(
             decoration: BoxDecoration(color: Colors.black),
-            child: Text(
-              'Menu',
-              style: TextStyle(color: Colors.white, fontSize: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Text(
+                  'Menu',
+                  style: TextStyle(color: Colors.white, fontSize: 34),
+                ),
+                // Text(
+                //   "Profile: $profile",
+                //   style: TextStyle(fontSize: 18,color: Colors.white),
+                // ),
+                // Text(
+                //   "User Name: $username",
+                //   style: TextStyle(fontSize: 18,color: Colors.white),
+                // )
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  // mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    // Text(
+                    //   "Profile: ${profile ?? 'No profile'}",
+                    //   style: TextStyle(fontSize: 18, color: Colors.white),
+                    // ),
+                      // Add some spacing between the two texts
+                    Text(
+                      "Hello, ${username ?? 'Guest'}",
+                      style: TextStyle(fontSize: 20, color: Colors.white),
+                    ),
+                  ],
+                ),
+
+              ],
             ),
           ),
           _buildDrawerItem(context, Icons.home, 'Upload Truck Details', '/home'),

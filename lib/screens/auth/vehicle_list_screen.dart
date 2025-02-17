@@ -773,26 +773,80 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
   DateTime? endDate;
   String? filePath;
   bool isUploading = false;// added new
+  String? fileError; // New state variable for file error
 
+  // Future<void> _pickFile() async {
+  //   try {
+  //     FilePickerResult? result = await FilePicker.platform.pickFiles(
+  //       type: FileType.custom,
+  //       allowedExtensions: ['pdf'],
+  //       allowMultiple: false,
+  //     );
+  //
+  //     if (result != null) {
+  //       setState(() {
+  //         filePath = result.files.first.path;
+  //       });
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error picking file: $e')),
+  //       );
+  //     }
+  //   }
+  // }
+
+  //new file picker with popup of pdf and less than 1 mb
   Future<void> _pickFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        allowedExtensions: ['pdf'], // Restrict to PDF only
         allowMultiple: false,
       );
 
       if (result != null) {
+        final file = result.files.first;
+
+        // Check file type
+        if (!file.path!.toLowerCase().endsWith('.pdf')) {
+          setState(() {
+            fileError = 'Please select a PDF file only';
+            filePath = null; // Clear the file path if invalid
+          });
+          return;
+        }
+
+        // Check file size (1MB = 1 * 1024 * 1024 bytes)
+        if (file.size > 1 * 1024 * 1024) {
+          setState(() {
+            fileError = 'File size must be less than 1MB';
+            filePath = null; // Clear the file path if invalid
+          });
+          return;
+        }
+
+        // If all validations pass, clear error and set file path
         setState(() {
-          filePath = result.files.first.path;
+          filePath = file.path;
+          fileError = null; // Clear any previous errors
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking file: $e')),
-        );
-      }
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text('Error picking file: $e'),
+      //       backgroundColor: Colors.red,
+      //     ),
+      //   );
+      // }
+      setState(() {
+        fileError = 'Error picking file: $e';
+        filePath = null;
+      });
+
     }
   }
 
@@ -915,6 +969,72 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
               trailing: const Icon(Icons.attach_file),
               onTap: _pickFile,
             ),
+            if (fileError != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline,
+                        size: 16,
+                        color: Colors.red[700]
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        fileError!,
+                        style: TextStyle(
+                          color: Colors.red[700],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
+            // Note section with file requirements
+            // Container(
+            //   padding: const EdgeInsets.all(12),
+            //   decoration: BoxDecoration(
+            //     color: Colors.grey[100],
+            //     borderRadius: BorderRadius.circular(8),
+            //     border: Border.all(
+            //       color: Colors.grey[300]!,
+            //       width: 1,
+            //     ),
+            //   ),
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       Row(
+            //         children: [
+            //           Icon(Icons.info_outline,
+            //               size: 20,
+            //               color: Colors.blue[700]
+            //           ),
+            //           const SizedBox(width: 8),
+            //           Text(
+            //             'Note:',
+            //             style: TextStyle(
+            //               fontWeight: FontWeight.bold,
+            //               color: Colors.blue[700],
+            //             ),
+            //           ),
+            //         ],
+            //       ),
+            //       const SizedBox(height: 8),
+            //       const Text(
+            //         '• File type must be PDF only\n'
+            //             '• Maximum file size: 1MB\n'
+            //             '• Document should be clear and readable',
+            //         style: TextStyle(
+            //           fontSize: 13,
+            //           height: 1.5,
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -953,19 +1073,52 @@ class DocumentField extends StatelessWidget {
     required this.onChanged,
   }) : super(key: key);
 
-  Future<void> _pickFile() async {
+  // Future<void> _pickFile() async {
+  //   try {
+  //     FilePickerResult? result = await FilePicker.platform.pickFiles(
+  //       type: FileType.custom,
+  //       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+  //       allowMultiple: false,
+  //     );
+  //
+  //     if (result != null) {
+  //       final file = result.files.first;
+  //       if (file.size > 10 * 1024 * 1024) { // 10MB limit
+  //         throw Exception('File size exceeds 10MB limit');
+  //       }
+  //       onChanged(
+  //         data['startDate'],
+  //         data['endDate'],
+  //         file.path ?? '',
+  //       );
+  //     }
+  //   } catch (e) {
+  //     // Show error dialog or snackbar
+  //     debugPrint('Error picking file: $e');
+  //   }
+  // }
+
+  Future<void> _pickFile(BuildContext context) async {  // Added context parameter
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        allowedExtensions: ['pdf'], // Restrict to PDF only
         allowMultiple: false,
       );
 
       if (result != null) {
         final file = result.files.first;
-        if (file.size > 10 * 1024 * 1024) { // 10MB limit
-          throw Exception('File size exceeds 10MB limit');
+
+        // Check file type
+        if (!file.path!.toLowerCase().endsWith('.pdf')) {
+          throw Exception('Please select a PDF file only');
         }
+
+        // Check file size (1MB = 1 * 1024 * 1024 bytes)
+        if (file.size > 1 * 1024 * 1024) {
+          throw Exception('File size must be less than 1MB');
+        }
+
         onChanged(
           data['startDate'],
           data['endDate'],
@@ -973,9 +1126,40 @@ class DocumentField extends StatelessWidget {
         );
       }
     } catch (e) {
-      // Show error dialog or snackbar
+      // Show error dialog
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('File Upload Error'),
+              content: Text(e.toString()),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
       debugPrint('Error picking file: $e');
     }
+  }
+
+  // Optional: Add a method to format file size for display
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  // Optional: Add a method to verify file extension
+  bool _isValidPdfExtension(String filePath) {
+    return filePath.toLowerCase().endsWith('.pdf');
   }
 
   @override
@@ -1017,7 +1201,7 @@ class DocumentField extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _pickFile,
+                    onPressed: () => _pickFile(context),  // Pass context here
                     icon: const Icon(Icons.attach_file,),
                     label: const Text('Upload Document'),
                     style: ElevatedButton.styleFrom(
