@@ -140,7 +140,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
                           blurRadius: 10,
-                          spreadRadius: 5,
+                          offset: const Offset(0, 0),
+                          spreadRadius: 0,
                         ),
                       ],
                     ),
@@ -160,10 +161,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        // Login Text
+                        // Login Text (unchanged)
                         Text(
                           'Login',
-                          style: Theme.of(context).textTheme.headlineMedium,
+                          style: Theme
+                              .of(context)
+                              .textTheme
+                              .headlineMedium,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
@@ -178,6 +182,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             prefixIcon: const Icon(Icons.person),
                             filled: true,
                             fillColor: Colors.white,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF4CAF50),
+                              ),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -211,6 +227,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             filled: true,
                             fillColor: Colors.white,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF4CAF50),
+                              ),
+                            ),
                           ),
                           obscureText: _obscurePassword,
                           validator: (value) {
@@ -223,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Login Button
+                        // Login Button (unchanged text color)
                         SizedBox(
                           height: 48,
                           child: ElevatedButton(
@@ -247,6 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Login',
                               style: TextStyle(
                                 fontSize: 16,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -256,7 +285,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Sign Up and Reset Password Links
                         TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/signup'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/signup'),
                           child: const Text(
                             "Don't have an account yet? Sign up",
                             textAlign: TextAlign.center,
