@@ -201,99 +201,102 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Logistics App',
-      navigatorKey: navigatorKey,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      initialRoute: '/login',
-      onGenerateRoute: (settings) {
-        print('Navigating to: ${settings.name} with arguments: ${settings.arguments}');
-
-        // Extract profile from route arguments
-        String? profile;
-        String? username;
-        if (settings.arguments is Map<String, dynamic>) {
-          final args = settings.arguments as Map<String, dynamic>;
-          profile = args['profile'] as String?;
-          username = args['username'] as String?;
-        }
-
-        // Check for restricted access
-        if (settings.name != null &&
-            settings.name != '/login' &&
-            settings.name != '/signup' &&
-            settings.name != '/reset-password') {
-          if (isRouteRestricted(profile, settings.name!)) {
-            return MaterialPageRoute(
-              builder: (context) {
-                handleRestrictedAccess(context);
-                return TruckDetailsScreen(username: username, profile: profile);
-              },
-            );
+    return PopScope(
+      canPop: false, // Prevents back navigation
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Logistics App',
+        navigatorKey: navigatorKey,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+        ),
+        initialRoute: '/login',
+        onGenerateRoute: (settings) {
+          print('Navigating to: ${settings.name} with arguments: ${settings.arguments}');
+      
+          // Extract profile from route arguments
+          String? profile;
+          String? username;
+          if (settings.arguments is Map<String, dynamic>) {
+            final args = settings.arguments as Map<String, dynamic>;
+            profile = args['profile'] as String?;
+            username = args['username'] as String?;
           }
-        }
-
-        // Regular route handling
-        switch (settings.name) {
-          case '/':
-          case '/login':
-            return _buildPageRoute(LoginScreen());
-          case '/signup':
-            return _buildPageRoute(SignUpScreen());
-          case '/home':
-            return _buildPageRoute(TruckDetailsScreen(
-              username: username,
-              profile: profile,
-            ));
-          case '/todaylist':
-            return _buildPageRoute(TodaysListScreen());
-          case '/reset-password':
-            return _buildPageRoute(const ResetPasswordScreen());
-          case '/freight':
-            return _buildPageRoute(FreightScreen());
-          case '/vehicle':
-            return _buildPageRoute(VehicleScreen());
-          case '/vendor':
-            return _buildPageRoute(VendorScreen());
-          case '/reports':
-            return _buildPageRoute(const ReportsScreen());
-          case '/generate-bill':
-            return _buildPageRoute(GenerateBillScreen());
-          case '/transaction':
-            return _buildPageRoute(TransactionsScreen());
-          case '/business':
-            return _buildPageRoute(const BusinessScreen());
-          default:
-            return _buildPageRoute(const Scaffold(
-              body: Center(child: Text('Route not found')),
-            ));
-        }
-      },
-      home: FutureBuilder<bool>(
-        future: _authService.checkAuth(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
+      
+          // Check for restricted access
+          if (settings.name != null &&
+              settings.name != '/login' &&
+              settings.name != '/signup' &&
+              settings.name != '/reset-password') {
+            if (isRouteRestricted(profile, settings.name!)) {
+              return MaterialPageRoute(
+                builder: (context) {
+                  handleRestrictedAccess(context);
+                  return TruckDetailsScreen(username: username, profile: profile);
+                },
+              );
+            }
           }
-
-          if (snapshot.hasError) {
-            return Scaffold(
-              body: Center(child: Text('Error: ${snapshot.error}')),
-            );
-          }
-
-          if (snapshot.hasData && snapshot.data!) {
-            return TruckDetailsScreen();
-          } else {
-            return LoginScreen();
+      
+          // Regular route handling
+          switch (settings.name) {
+            case '/':
+            case '/login':
+              return _buildPageRoute(LoginScreen());
+            case '/signup':
+              return _buildPageRoute(SignUpScreen());
+            case '/home':
+              return _buildPageRoute(TruckDetailsScreen(
+                username: username,
+                profile: profile,
+              ));
+            case '/todaylist':
+              return _buildPageRoute(TodaysListScreen());
+            case '/reset-password':
+              return _buildPageRoute(const ResetPasswordScreen());
+            case '/freight':
+              return _buildPageRoute(FreightScreen());
+            case '/vehicle':
+              return _buildPageRoute(VehicleScreen());
+            case '/vendor':
+              return _buildPageRoute(VendorScreen());
+            case '/reports':
+              return _buildPageRoute(const ReportsScreen());
+            case '/generate-bill':
+              return _buildPageRoute(GenerateBillScreen());
+            case '/transaction':
+              return _buildPageRoute(TransactionsScreen());
+            case '/business':
+              return _buildPageRoute(const BusinessScreen());
+            default:
+              return _buildPageRoute(const Scaffold(
+                body: Center(child: Text('Route not found')),
+              ));
           }
         },
+        home: FutureBuilder<bool>(
+          future: _authService.checkAuth(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+      
+            if (snapshot.hasError) {
+              return Scaffold(
+                body: Center(child: Text('Error: ${snapshot.error}')),
+              );
+            }
+      
+            if (snapshot.hasData && snapshot.data!) {
+              return TruckDetailsScreen();
+            } else {
+              return LoginScreen();
+            }
+          },
+        ),
       ),
     );
   }
@@ -310,4 +313,22 @@ class MyApp extends StatelessWidget {
       },
     );
   }
+
+  // Add logout method to clear stack
+  // void logout(BuildContext context) {
+  //   // Clear all routes and go to the login screen
+  //   Navigator.pushAndRemoveUntil(
+  //     context,
+  //     MaterialPageRoute(builder: (context) => LoginScreen()),
+  //         (Route<dynamic> route) => false, // This removes all previous routes
+  //   );
+  // }
+  void logout(BuildContext context) {
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/login',
+          (route) => false, // This removes all previous routes
+    );
+  }
+
 }

@@ -681,7 +681,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
           ),
         ],
       ),
-      drawer: const CustomDrawer(),
+      // drawer: const CustomDrawer(),
       body: Column(
         children: [
           _buildSearchFilters(),

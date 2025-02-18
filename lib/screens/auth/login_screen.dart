@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:logistics/screens/auth/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/services/auth_service.dart';
 
@@ -77,13 +78,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // // Navigate based on role
       // _navigateBasedOnRole(profile);
-      Navigator.of(context).pushReplacementNamed(
-          '/home',
-          // arguments: _username
-          arguments: {
-           'username': _username,
-           'profile': profile,
-          },
+      // Navigator.of(context).pushReplacementNamed(
+      //     '/home',
+      //     // arguments: _username
+      //     arguments: {
+      //      'username': _username,
+      //      'profile': profile,
+      //     },
+      // );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => TruckDetailsScreen(
+            username: _username,
+            profile: profile,
+          ),
+        ),
+            (Route<dynamic> route) => false, // Removes the login screen from history
       );
 
     } catch (e) {
