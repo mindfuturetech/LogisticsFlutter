@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'auth_provider.dart';
+import 'login_screen.dart';
 
 
 class LogoutDialog extends StatefulWidget {
@@ -22,7 +23,7 @@ class _LogoutDialogState extends State<LogoutDialog> {
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
           child: Text('Cancel'),
         ),
-        Container(
+          Container(
           decoration: BoxDecoration(
             color: Colors.red,
             borderRadius: BorderRadius.circular(4),
@@ -57,19 +58,30 @@ class _LogoutDialogState extends State<LogoutDialog> {
     );
   }
 
+  // Future<void> _handleLogout(BuildContext context) async {
+  //   try {
+  //     setState(() => _isLoading = true);
+  //     await context.read<AuthProvider>().logout();
+  //     // Navigator.of(context).pushReplacementNamed('/login'); // Navigate to login screen
+  //
+  //     // Clear navigation history and go to Login Screen
+  //     Navigator.of(context).pushAndRemoveUntil(
+  //       MaterialPageRoute(builder: (context) => LoginScreen()),
+  //           (Route<dynamic> route) => false, // This removes all previous routes
+  //     );
+  //
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Logout failed: ${e.toString()}')),
+  //     );
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => _isLoading = false);
+  //     }
+  //   }
+
   Future<void> _handleLogout(BuildContext context) async {
-    try {
-      setState(() => _isLoading = true);
-      await context.read<AuthProvider>().logout();
-      Navigator.of(context).pushReplacementNamed('/login'); // Navigate to login screen
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout failed: ${e.toString()}')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    context.read<AuthProvider>().logout(context);
     }
   }
-}
+

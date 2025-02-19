@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 
 import '../../config/services/auth_service.dart';
+import 'login_screen.dart';
 
 
 class AuthProvider extends ChangeNotifier {
@@ -26,9 +28,21 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> logout() async {
+  Future<void> logout(BuildContext context) async {
     final authService = AuthService();
     await authService.logout();
     await setAuth(false);
+
+    // Delay to ensure stack is cleared before navigation
+    await Future.delayed(Duration(milliseconds: 100));
+
+    // Navigate to Login screen & clear all previous routes
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+          (route) => false,
+    );
+
   }
+
 }
