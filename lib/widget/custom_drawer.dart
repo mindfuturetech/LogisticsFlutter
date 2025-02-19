@@ -14,8 +14,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
   String? username = "Loading..."; // Default value
 
   static final Map<String, List<String>> profileRestrictions = {
-    'loadingManager': ['/freight','/vehicle','/vendor','/reports','/generate-bill', '/business', '/transactions'],
-    'unloadingManager': ['/business', '/freight', '/vehicle', '/vendor', '/transactions', '/generate-bill'],
+    'loadingManager': ['/freight','/vehicle','/vendor','/reports','/generate-bill', '/business', '/transaction'],
+    'unloadingManager': ['/business', '/freight', '/vehicle', '/vendor', '/transaction', '/generate-bill'],
   };
 
   @override

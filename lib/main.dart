@@ -175,8 +175,8 @@ class MyApp extends StatelessWidget {
 
   // Centralize route restrictions
   static final Map<String, List<String>> profileRestrictions = {
-    'loadingManager': ['/freight', '/vehicle', '/vendor', '/reports', '/generate-bill', '/business', '/transactions'],
-    'unloadingManager': ['/business', '/freight', '/vehicle', '/vendor', '/transactions', '/generate-bill'],
+    'loadingManager': ['/freight', '/vehicle', '/vendor', '/reports', '/generate-bill', '/business', '/transaction'],
+    'unloadingManager': ['/business', '/freight', '/vehicle', '/vendor', '/transaction', '/generate-bill'],
   };
 
   MyApp({super.key});
