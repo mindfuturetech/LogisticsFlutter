@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:logistics/config/model/truck_details_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../screens/auth/notification_page.dart';
 import '../../config/services/notification_service.dart';
 import '../config/services/auth_service.dart';
@@ -169,11 +169,13 @@ import '../config/services/search_service.dart';
 class CustomAppBar extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final Function(TripDetails?) onTruckFound;
+  final String? profile;  // Add profile parameter
 
   const CustomAppBar({
     super.key,
     required this.scaffoldKey,
     required this.onTruckFound,
+    this.profile,  // Add to constructor
   });
 
   @override
@@ -184,6 +186,22 @@ class _CustomAppBarState extends State<CustomAppBar> {
   final TextEditingController _searchController = TextEditingController();
   final apiService = ApiSearchService();
   bool _isLoading = false;
+  String? profile;  // Add profile variable
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize profile from widget
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      profile = prefs.getString('profile');
+
+    });
+  }
 
   Future<void> _searchTrip(String id) async {
     if (id.isEmpty) return;
@@ -209,6 +227,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
 
   @override
   Widget build(BuildContext context) {
+    print('CustomAppBar - Received profile: $profile');
+    print('CustomAppBar - Is profile accountant?: ${profile?.toLowerCase() == 'accountant'}');
     return Container(
       color: Colors.black,
       child: SafeArea(
@@ -313,7 +333,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
               ),
 
               // Notification Button
-              IconButton(
+              if (profile?.toLowerCase() != 'loadingmanager')
+                IconButton(
                 onPressed: () {
                   Navigator.push(
                     context,

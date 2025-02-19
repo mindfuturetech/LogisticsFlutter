@@ -272,52 +272,56 @@ class _BusinessScreenState extends State<BusinessScreen> {
     });
 
     try {
-      // Get download path
       final downloadPath = await _getDownloadPath();
-
-      // Create Excel workbook
       var excelWorkbook = excel.Excel.createExcel();
       var sheet = excelWorkbook['Sheet1'];
 
-      // Add headers
+      // Add headers - adding 'Total' column at the end
       final headers = [
-        'Date',
-        'Time',
-        'Trip ID',
+        'TripID',
         'Username',
         'Profile',
-        'Truck Number',
-        'DO Number',
-        'Driver Name',
+        'TruckNumber',
+        'DONumber',
+        'Date',
+        'Time',
+        'DriverName',
         'Vendor',
-        'From',
-        'To',
-        'Truck Type',
-        'Transaction Status',
+        'DestinationFrom',
+        'DestinationTo',
+        'TruckType',
+        'TransactionStatus',
         'Weight',
-        'Actual Weight',
-        'Difference in Weight',
+        'ActualWeight',
+        'DifferenceInWeight',
         'Freight',
-        'Diesel Amount',
-        'Diesel Slip Number',
-        'TDS Rate',
+        'DieselAmount',
+        'DieselSlipNumber',
+        'TDS_Rate',
         'Advance',
         'Toll',
         'AdBlue',
         'Greasing',
+        'Total', // Added new column
       ];
 
       // Add headers to excel
       for (var i = 0; i < headers.length; i++) {
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
-            .value = headers[i];
+        var cell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.value = headers[i];
+        // Make headers bold
+        cell.cellStyle = excel.CellStyle(
+          bold: true,
+          horizontalAlign: excel.HorizontalAlign.Center,
+        );
       }
 
-      // Add data
-      for (var i = 0; i < _reports.length; i++) {
-        var report = _reports[i];
+      double grandTotal = 0.0;
 
-        // Format date to a readable string
+      // Add data rows
+      for (var i = 0; i < reports.length; i++) {
+        var report = reports[i];
+
         String formattedDate = '';
         String formattedTime = '';
 
@@ -326,7 +330,10 @@ class _BusinessScreenState extends State<BusinessScreen> {
           formattedTime = DateFormat('HH:mm').format(report.createdAt!.toLocal());
         }
 
-        // Row data in same order as headers
+        // Calculate total for this row
+        final rowTotal = calculateTripTotal(report, destinations);
+        grandTotal += rowTotal;
+
         final rowData = [
           formattedDate,
           formattedTime,
@@ -352,26 +359,64 @@ class _BusinessScreenState extends State<BusinessScreen> {
           report.toll?.toStringAsFixed(2) ?? '',
           report.adblue?.toStringAsFixed(2) ?? '',
           report.greasing?.toStringAsFixed(2) ?? '',
+          rowTotal.toStringAsFixed(2), // Added total column
         ];
 
         // Add row data to excel
         for (var j = 0; j < rowData.length; j++) {
-          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i + 1))
-              .value = rowData[j];
+          var cell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i + 1));
+          cell.value = rowData[j];
+
+          // Right align numeric columns
+          if (j >= 13 && j <= 23) { // Columns with numeric values
+            cell.cellStyle = excel.CellStyle(
+              horizontalAlign: excel.HorizontalAlign.Right,
+            );
+          }
         }
+      }
+
+      // Add grand total row
+      var grandTotalRowIndex = reports.length + 1;
+
+      // Add "Grand Total" text in the first column
+      var grandTotalLabelCell = sheet.cell(excel.CellIndex.indexByColumnRow(
+        columnIndex: 0,
+        rowIndex: grandTotalRowIndex,
+      ));
+      grandTotalLabelCell.value = 'Grand Total';
+      grandTotalLabelCell.cellStyle = excel.CellStyle(
+        bold: true,
+        horizontalAlign: excel.HorizontalAlign.Left,
+      );
+
+      // Add grand total value in the last column (Total column)
+      var grandTotalValueCell = sheet.cell(excel.CellIndex.indexByColumnRow(
+        columnIndex: headers.length - 1, // Last column
+        rowIndex: grandTotalRowIndex,
+      ));
+      grandTotalValueCell.value = grandTotal.toStringAsFixed(2);
+      grandTotalValueCell.cellStyle = excel.CellStyle(
+        bold: true,
+        horizontalAlign: excel.HorizontalAlign.Right,
+      );
+
+      // Fill other columns with empty strings
+      for (var j = 1; j < headers.length - 1; j++) {
+        sheet.cell(excel.CellIndex.indexByColumnRow(
+          columnIndex: j,
+          rowIndex: grandTotalRowIndex,
+        )).value = '';
       }
 
       final dateStr = DateFormat('yyyy_MM_dd_HH_mm').format(DateTime.now());
       final fileName = 'trip_reports_$dateStr.xlsx';
       final filePath = '$downloadPath/$fileName';
 
-      // Save the file
       final fileBytes = excelWorkbook.save();
       if (fileBytes != null) {
         final file = File(filePath);
         await file.writeAsBytes(fileBytes);
-
-        // Try to open the file
         await _openExcelFile(filePath);
 
         if (mounted) {
@@ -398,6 +443,8 @@ class _BusinessScreenState extends State<BusinessScreen> {
       });
     }
   }
+
+
   Future<void> _openExcelFile(String filePath) async {
     try {
       await OpenFile.open(filePath);
@@ -681,7 +728,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
           ),
         ],
       ),
-      drawer: const CustomDrawer(),
+      // drawer: const CustomDrawer(),
       body: Column(
         children: [
           _buildSearchFilters(),
@@ -938,9 +985,37 @@ class _BusinessScreenState extends State<BusinessScreen> {
             _buildInfoRow('Greasing', '₹${report.greasing ?? 0}'),
           ],
         ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  '₹ ${calculateTripTotal(report, destinations).toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
+
+
 
   Widget _buildDocumentSection(report) {
     return Column(

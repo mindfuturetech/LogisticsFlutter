@@ -7,6 +7,8 @@ import 'dart:io';
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/reports_service.dart';
 import '../../config/services/search_service.dart';
+import 'package:path/path.dart' as path;
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class ReportCard extends StatefulWidget {
   final TripDetails report;
@@ -51,17 +53,50 @@ class _ReportCardState extends State<ReportCard> {
       transactionStatus = 'Open';
     }
   }
+  // New method for compressing files
+  Future<File?> compressFile(File file) async {
+    try {
+      // Get the original file name without the path
+      final fileName = path.basename(file.path);
 
+      // Get temporary directory
+      final dir = await getTemporaryDirectory();
+
+      // Create target path maintaining the original filename
+      final targetPath = path.join(dir.path, fileName);
+
+      // Compress the image
+      var result = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        quality: 70,
+        minWidth: 1024,
+        minHeight: 1024,
+      );
+
+      return result != null ? File(result.path) : null;
+    } catch (e) {
+      print('Error compressing file: $e');
+      return null;
+    }
+  }
+
+// Update your _pickFile method
   Future<void> _pickFile(String field) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+        allowedExtensions: ['jpg', 'jpeg', 'png'],
       );
 
       if (result != null) {
+        File originalFile = File(result.files.single.path!);
+
+        // Compress the file
+        File? compressedFile = await compressFile(originalFile);
+
         setState(() {
-          selectedFiles[field] = File(result.files.single.path!);
+          selectedFiles[field] = compressedFile ?? originalFile;
         });
       }
     } catch (e) {
@@ -69,11 +104,62 @@ class _ReportCardState extends State<ReportCard> {
     }
   }
 
-  Future<void> _downloadFile(String id, String field,
-      Map<String, dynamic>? fileData) async {
+// Update your _saveChanges method
+  Future<void> _saveChanges() async {
+    setState(() => isLoading = true);
+    try {
+      // Create a map to store upload results
+      Map<String, dynamic> uploadedFiles = {};
+
+      // Upload and compress each file
+      for (var entry in selectedFiles.entries) {
+        if (entry.value != null) {
+          try {
+            // Upload the file and get the response
+            var uploadResult = await _reportsService.uploadFile(
+              entry.value!,
+              entry.key,
+            );
+
+            if (uploadResult != null) {
+              uploadedFiles[entry.key] = uploadResult;
+            }
+          } catch (e) {
+            print('Error uploading ${entry.key}: $e');
+          }
+        }
+      }
+
+      // Update report with file information
+      await _reportsService.updateReport(
+        widget.report.id!,
+        weight,
+        double.tryParse(actualWeightController.text) ?? 0.0,
+        transactionStatus!,
+        selectedFiles,
+        uploadedFiles: uploadedFiles,
+      );
+
+      setState(() {
+        isEditing = false;
+        selectedFiles.clear();
+      });
+
+      if (widget.onRefresh != null) {
+        widget.onRefresh!();
+      }
+
+      _showSuccess('Changes saved successfully');
+    } catch (e) {
+      _showError('Error saving changes: $e');
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _downloadFile(String id, String field, Map<String, dynamic>? fileData) async {
     if (!mounted) return;
 
-    // Check if we have valid file data
     if (fileData == null || fileData['originalname'] == null) {
       _showError('File information is missing');
       return;
@@ -82,8 +168,7 @@ class _ReportCardState extends State<ReportCard> {
     setState(() => isLoading = true);
 
     try {
-      print(
-          'Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
+      print('Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
 
       await _reportsService.downloadFile(
         id,
@@ -106,35 +191,140 @@ class _ReportCardState extends State<ReportCard> {
     }
   }
 
-
-  Future<void> _saveChanges() async {
-    setState(() => isLoading = true);
-    try {
-      await _reportsService.updateReport(
-        widget.report.id!,
-        weight,
-        double.tryParse(actualWeightController.text) ?? 0.0,
-        // ✅ Convert String to Double
-        transactionStatus!,
-        selectedFiles,
-      );
-
-      setState(() {
-        isEditing = false;
-        selectedFiles.clear();
-      });
-
-      if (widget.onRefresh != null) {
-        widget.onRefresh!();
-      }
-
-      _showSuccess('Changes saved successfully');
-    } catch (e) {
-      _showError('Error saving changes: $e');
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
+  // Future<void> _saveChanges() async {
+  //   setState(() => isLoading = true);
+  //   try {
+  //     // Create a map to store upload results
+  //     Map<String, dynamic> uploadedFiles = {}; // Change this to Map<String, dynamic>
+  //
+  //     // Upload and compress each file
+  //     for (var entry in selectedFiles.entries) {
+  //       if (entry.value != null) {
+  //         try {
+  //           // Upload the file and get the response
+  //           var uploadResult = await _reportsService.uploadFile(
+  //             entry.value!,
+  //             entry.key,
+  //           );
+  //
+  //           if (uploadResult != null) {
+  //             uploadedFiles[entry.key] = uploadResult; // Now this should work
+  //           }
+  //         } catch (e) {
+  //           print('Error uploading ${entry.key}: $e');
+  //         }
+  //       }
+  //     }
+  //
+  //     // Update report with file information
+  //     await _reportsService.updateReport(
+  //       widget.report.id!,
+  //       weight,
+  //       double.tryParse(actualWeightController.text) ?? 0.0,
+  //       transactionStatus!,
+  //       selectedFiles,
+  //       uploadedFiles: uploadedFiles, // Pass the uploaded files information
+  //     );
+  //
+  //     setState(() {
+  //       isEditing = false;
+  //       selectedFiles.clear();
+  //     });
+  //
+  //     if (widget.onRefresh != null) {
+  //       widget.onRefresh!();
+  //     }
+  //
+  //     _showSuccess('Changes saved successfully');
+  //   } catch (e) {
+  //     _showError('Error saving changes: $e');
+  //   } finally {
+  //     setState(() => isLoading = false);
+  //   }
+  // }
+  // Future<void> _pickFile(String field) async {
+  //   try {
+  //     FilePickerResult? result = await FilePicker.platform.pickFiles(
+  //       type: FileType.custom,
+  //       allowedExtensions: ['jpg', 'jpeg', 'png',],
+  //     );
+  //
+  //     if (result != null) {
+  //       setState(() {
+  //         selectedFiles[field] = File(result.files.single.path!);
+  //       });
+  //     }
+  //   } catch (e) {
+  //     _showError('Error picking file: $e');
+  //   }
+  // }
+  //
+  // Future<void> _downloadFile(String id, String field,
+  //     Map<String, dynamic>? fileData) async {
+  //   if (!mounted) return;
+  //
+  //   // Check if we have valid file data
+  //   if (fileData == null || fileData['originalname'] == null) {
+  //     _showError('File information is missing');
+  //     return;
+  //   }
+  //
+  //   setState(() => isLoading = true);
+  //
+  //   try {
+  //     print(
+  //         'Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
+  //
+  //     await _reportsService.downloadFile(
+  //       id,
+  //       field,
+  //       fileData['originalname'],
+  //     );
+  //
+  //     if (mounted) {
+  //       _showSuccess('File downloaded successfully');
+  //     }
+  //   } catch (e) {
+  //     print('Download failed: $e');
+  //     if (mounted) {
+  //       _showError(e.toString().replaceAll('Exception:', '').trim());
+  //     }
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => isLoading = false);
+  //     }
+  //   }
+  // }
+  //
+  //
+  // Future<void> _saveChanges() async {
+  //   setState(() => isLoading = true);
+  //   try {
+  //     await _reportsService.updateReport(
+  //       widget.report.id!,
+  //       weight,
+  //       double.tryParse(actualWeightController.text) ?? 0.0,
+  //       // ✅ Convert String to Double
+  //       transactionStatus!,
+  //       selectedFiles,
+  //     );
+  //
+  //     setState(() {
+  //       isEditing = false;
+  //       selectedFiles.clear();
+  //     });
+  //
+  //     if (widget.onRefresh != null) {
+  //       widget.onRefresh!();
+  //     }
+  //
+  //     _showSuccess('Changes saved successfully');
+  //   } catch (e) {
+  //     _showError('Error saving changes: $e');
+  //   } finally {
+  //     setState(() => isLoading = false);
+  //   }
+  // }
 
   // Add this new method
   Future<void> _handleTripSearch(String tripId) async {
@@ -213,9 +403,9 @@ class _ReportCardState extends State<ReportCard> {
     );
   }
 
-  // Update your _buildFileField method to handle download state
-  Widget _buildFileField(String label, String field,
-      Map<String, dynamic>? fileData) {
+
+
+  Widget _buildFileField(String label, String field, Map<String, dynamic>? fileData) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -223,8 +413,7 @@ class _ReportCardState extends State<ReportCard> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(
-                label, style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
           Expanded(
             child: isEditing
@@ -233,18 +422,27 @@ class _ReportCardState extends State<ReportCard> {
               children: [
                 ElevatedButton(
                   onPressed: () => _pickFile(field),
-                  child: Text(selectedFiles[field] != null
-                      ? 'Change File'
-                      : 'Select File'),
+                  child: Text(selectedFiles[field] != null ? 'Change File' : 'Select File'),
                 ),
                 if (selectedFiles[field] != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Text(selectedFiles[field]!
-                        .path
-                        .split('/')
-                        .last),
-
+                    padding: const EdgeInsets.only(left: 8, top: 8),
+                    child: Text(
+                      path.basename(selectedFiles[field]!.path),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                if (selectedFiles[field] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, top: 4),
+                    child: Text(
+                      'File will be compressed before upload',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                   ),
               ],
             )
@@ -274,127 +472,6 @@ class _ReportCardState extends State<ReportCard> {
     );
   }
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   final localDateTime = widget.report.createdAt!.toLocal();
-  //
-  //   return Card(
-  //     margin: const EdgeInsets.symmetric(vertical: 8),
-  //     child: ExpansionTile(
-  //       title: Row(
-  //         children: [
-  //           const Text(
-  //             'Truck Number: ',
-  //             style: TextStyle(
-  //               fontWeight: FontWeight.bold,
-  //               fontSize: 16,
-  //             ),
-  //           ),
-  //           Text(
-  //             '${widget.report.truckNumber}',
-  //             style: const TextStyle(
-  //               fontWeight: FontWeight.bold,
-  //               fontSize: 16,
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //       subtitle: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Row(
-  //             children: [
-  //               const Text(
-  //                 'Date: ',
-  //                 style: TextStyle(fontSize: 14),
-  //               ),
-  //               Text(
-  //                 DateFormat('dd MMM yyyy').format(localDateTime),
-  //                 style: const TextStyle(fontSize: 14),
-  //               ),
-  //             ],
-  //           ),
-  //           const SizedBox(height: 4),
-  //           Row(
-  //             children: [
-  //               const Text(
-  //                 'Time: ',
-  //                 style: TextStyle(fontSize: 14),
-  //               ),
-  //               Text(
-  //                 DateFormat('hh:mm a').format(localDateTime),
-  //                 style: const TextStyle(fontSize: 14),
-  //               ),
-  //             ],
-  //           ),
-  //         ],
-  //       ),
-  //       children: [
-  //         Padding(
-  //           padding: const EdgeInsets.all(16),
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Row(
-  //                 crossAxisAlignment: CrossAxisAlignment.start,
-  //                 children: [
-  //                   // Left Column
-  //                   Expanded(
-  //                     child: Column(
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       children: [
-  //                         _buildInfoRow('Trip ID', widget.report.tripId, isTripId: true),
-  //                         _buildInfoRow('DO Number', widget.report.doNumber?.toString()),
-  //                         _buildInfoRow('User Name', widget.report.username),
-  //                         _buildInfoRow('Profile', widget.report.profile),
-  //                         _buildInfoRow('Driver', widget.report.driverName),
-  //                         _buildInfoRow('Vendor', widget.report.vendor),
-  //                         _buildInfoRow('From', widget.report.destinationFrom),
-  //                         _buildInfoRow('To', widget.report.destinationTo),
-  //                         _buildInfoRow('Bill ID', widget.report.billingId),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                   const SizedBox(width: 16), // Spacing between columns
-  //                   // Right Column
-  //                   Expanded(
-  //                     child: Column(
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       children: [
-  //                         _buildInfoRow('Diesel Amount',
-  //                             widget.report.dieselAmount != null
-  //                                 ? '₹${widget.report.dieselAmount.toString()}'
-  //                                 : null),
-  //                         _buildInfoRow('Weight', widget.report.weight?.toString()),
-  //                         _buildInfoRow('Difference', widget.report.differenceInWeight?.toString()),
-  //                         _buildInfoRow('Freight', widget.report.freight?.toString()),
-  //                         _buildInfoRow('Diesel Slip Number', widget.report.dieselSlipNumber?.toString()),
-  //                         _buildInfoRow('TDS Rate', widget.report.tdsRate?.toString()),
-  //                         _buildInfoRow('Advance', widget.report.advance?.toString()),
-  //                         _buildInfoRow('Toll', widget.report.toll?.toString()),
-  //                         _buildInfoRow('Adblue', widget.report.adblue?.toString()),
-  //                         _buildInfoRow('Greasing', widget.report.greasing?.toString()),
-  //                         _buildInfoRow('Truck Type', widget.report.truckType),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //               const SizedBox(height: 16),
-  //               _buildActualWeightField(),
-  //               _buildTransactionStatusDropdown(),
-  //               _buildFileField('Diesel Slip', 'DieselSlipImage', widget.report.DieselSlipImage),
-  //               _buildFileField('Loading Advice', 'LoadingAdvice', widget.report.LoadingAdvice),
-  //               _buildFileField('Invoice', 'InvoiceCompany', widget.report.InvoiceCompany),
-  //               _buildFileField('Weightment Slip', 'WeightmentSlip', widget.report.WeightmentSlip),
-  //               _buildActionButton(),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -639,51 +716,7 @@ class _ReportCardState extends State<ReportCard> {
     );
   }
 
-//   Widget _buildInfoRow(String label, String? value,{bool isTripId = false}) {
-//     return Padding(
-//       padding: const EdgeInsets.symmetric(vertical: 4),
-//       child: Row(
-//         children: [
-//           SizedBox(width: 120, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
-//           // Expanded(
-//           //     child: isTripId
-//           //         ? InkWell(
-//           //       onTap: () => _handleTripSearch(value ?? ''),
-//           //       child: Text(
-//           //         value ?? 'N/A',
-//           //         style: const TextStyle(
-//           //           color: Colors.blue,
-//           //           decoration: TextDecoration.underline,
-//           //         ),
-//           //       ),
-//           //     )
-//           //         : Text(value ?? 'N/A')
-//           // ),
-//
-//           Expanded(
-//             child: isTripId
-//                 ? GestureDetector( // Use GestureDetector for better touch response
-//               onTap: () {
-//                 if (value != null) {
-//                   _handleTripSearch(value);
-//                 }
-//               },
-//               child: Text(
-//                 value ?? 'N/A',
-//                 style: const TextStyle(
-//                 color: Colors.deepPurple,
-//                   // decoration: TextDecoration.underline,
-//                   fontWeight: FontWeight.bold,
-//                 ),
-//               ),
-//             )
-//                 : Text(value ?? 'N/A'),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
+
   Widget _buildInfoRow(String label, String? value, {bool isTripId = false}) {
     if (isTripId) {
       return Column(

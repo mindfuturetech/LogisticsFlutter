@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:logistics/widget/custom_appbar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../config/model/truck_details_model.dart';
 import '../../config/services/truck_details_service.dart';
@@ -11,9 +12,15 @@ import '../../widget/custom_drawer.dart';
 
 class TruckDetailsScreen extends StatefulWidget {
   final dynamic username;
+  final String? profile;  // Add profile parameter
   final TripDetails? initialTripDetails;
 
-  const TruckDetailsScreen({Key? key, this.username,this.initialTripDetails,}) : super(key: key);
+  const TruckDetailsScreen({
+    Key? key,
+    this.username,
+    this.initialTripDetails,
+    this.profile,  // Add to constructor
+  }) : super(key: key);
 
   @override
   State<TruckDetailsScreen> createState() => _TruckDetailsScreenState();
@@ -28,6 +35,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
   TripDetails? _truckData;
   bool searchCalled=false;
   late String username;
+  String? profile;  // Add profile variable
 
 
   String baseUrl = 'https://shreelalchand.com/logistics';
@@ -95,10 +103,19 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
     }
 
     username = widget.username?.toString() ?? "Guest";
-    print("Received username in initState: ${widget.username}"); // Debugging
+    // profile = widget.profile;  // Initialize profile
+    _loadProfile(); // Load profile from SharedPreferences
     fetchDestinationData();
     weightController.addListener(_onWeightChanged);
     _freightController.text = '0.00';
+  }
+
+  Future<void> _loadProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      profile = prefs.getString('profile');
+      print('Drawer loaded profile: $profile'); // Debug print
+    });
   }
 
   Future<void> fetchDestinationData() async {
@@ -378,215 +395,220 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
     // username = ModalRoute.of(context)?.settings.arguments as String?;
     // print("Received username in build: $username");
 
-    return Scaffold(
-      key: _scaffoldKey,
-      // appBar: CustomAppBar(scaffoldKey: _scaffoldKey),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: CustomAppBar(
-          scaffoldKey: _scaffoldKey,
-          onTruckFound: _updateFormWithTruck,
+    return PopScope(
+      canPop: false, // Prevents back navigation
+      child: Scaffold(
+        key: _scaffoldKey,
+        // appBar: CustomAppBar(scaffoldKey: _scaffoldKey),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: CustomAppBar(
+            scaffoldKey: _scaffoldKey,
+            onTruckFound: _updateFormWithTruck,
+            // profile: profile,  // Pass the profile here
+          ),
         ),
-      ),
-      drawer: const CustomDrawer(),
+        // drawer: const CustomDrawer(),
+        drawer: CustomDrawer(),
 
-      // Main Content
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_editingId != null) ...[
-                _buildTextFormField(
-                  controller: TextEditingController(text: _editingId),
-                  label: 'Trip ID',
-                  readOnly: true,
+        // Main Content
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_editingId != null) ...[
+                  _buildTextFormField(
+                    controller: TextEditingController(text: _editingId),
+                    label: 'Trip ID',
+                    readOnly: true,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                _buildAutocompleteField(
+                  controller: truckNumberController,
+                  label: 'Truck Number',
+                  getSuggestions: _logisticsService.fetchTrucks,
                 ),
                 const SizedBox(height: 16),
-              ],
-              _buildAutocompleteField(
-                controller: truckNumberController,
-                label: 'Truck Number',
-                getSuggestions: _logisticsService.fetchTrucks,
-              ),
-              const SizedBox(height: 16),
-              _buildTextFormField(
-                controller: _doNumberController,
-                label: 'DO Number',
-                keyboardType: TextInputType.number,
-              ),
-
-              _buildTextFormField(
-                controller: _driverNameController,
-                label: 'Driver Name',
-                keyboardType: TextInputType.text,
-              ),
-              // _buildDropdownField(
-              //   'Truck Type',
-              //   ['Type 1', 'Type 2', 'Type 3'],
-              // ),
-              _buildDropdownField(
-                label: 'Truck Type',
-                options: truckTypes,
-                selectedValue: selectedTruckType,
-                onChanged: (value) {
-                  setState(() {
-                    selectedTruckType = value!;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 16),
-              _buildAutocompleteField(
-                controller: vendorController,
-                label: 'Vendor',
-                getSuggestions: _logisticsService.fetchVendors,
-                onSelected: (value) async {
-                  double tdsRate = await _logisticsService.fetchTdsRate(value);
-                  setState(() {
-                    _tdsRateController.text = tdsRate.toString();
-                  });
-                },
-              ),
-              // _buildDropdownField(
-              //   'Transaction Status',
-              //   ['Open'],
-              // ),
-
-              _buildDropdownField(
-                label: 'Transaction Status',
-                options: _editingId == null ? ['Open'] : transactionStatuses,
-                selectedValue: selectedTransactionStatus ?? 'Open',
-                onChanged: _editingId == null
-                    ? (value) {} // Provide an empty function instead of null
-                    : (value) {
-                  setState(() {
-                    selectedTransactionStatus =  value ?? 'Open';
-                  });
-                },
-              ),
-
-
-              const SizedBox(height: 16),
-              Autocomplete<Map<String, dynamic>>(
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  handleDestinationFrom(textEditingValue.text);
-                  return filteredDestinationFrom;
-                },
-                displayStringForOption: (option) => option['from'],
-                onSelected: (selection) {
-                  destinationFromController.text = selection['from'];
-                  calculateRate();
-                },
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                  destinationFromController = controller;
-                  return TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                      labelText: 'Destination From',
-                      border: OutlineInputBorder(),
-                    ),
-                  );
-                },
-              ),
-              SizedBox(height: 16),
-              Autocomplete<Map<String, dynamic>>(
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  handleDestinationTo(textEditingValue.text);
-                  return filteredDestinationTo;
-                },
-                displayStringForOption: (option) => option['to'],
-                onSelected: (selection) {
-                  destinationToController.text = selection['to'];
-                  calculateRate();
-                },
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                  destinationToController = controller;
-                  return TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                      labelText: 'Destination To',
-                      border: OutlineInputBorder(),
-                    ),
-                  );
-                },
-              ),
-          SizedBox(height: 16),
-              _buildTextFormField(
-                controller: weightController,
-                label: 'Weight',
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              _buildTextFormField(
-                controller: _freightController,
-                // Use the controller's text to display the value
-                label: 'Freight: ₹${_freightController.text}',
-                keyboardType: TextInputType.number,
-                readOnly: true,
-          ),
-              SizedBox(height: 16),
-              // _buildTextFormField(
-              //   controller: _dieselController,
-              //   label: 'Diesel',
-              //   keyboardType: TextInputType.number,
-              // ),
-              _buildTextFormField(
-                controller: _dieselAmountController,
-                label: 'Diesel Amount',
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextFormField(
-                controller: _dieselSlipNumberController,
-                label: 'Diesel Slip Number',
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextFormField(
-                controller: _tdsRateController,
-                label: 'tds Rate',
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextFormField(
-                controller: _advanceController,
-                label: 'Advance',
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextFormField(
-                controller: _tollController,
-                label: 'Toll',
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextFormField(
-                controller: _adblueController,
-                label: 'Adblue',
-                keyboardType: TextInputType.number,
-              ),
-              _buildTextFormField(
-                controller: _greasingController,
-                label: 'Greasing',
-                keyboardType: TextInputType.number,
-              ),
-
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                  backgroundColor: const Color(0xFF5C2F95), // Purple shade
+                _buildTextFormField(
+                  controller: _doNumberController,
+                  label: 'DO Number',
+                  keyboardType: TextInputType.number,
                 ),
-                child: const Text(
-                  "Submit",
-                  style: TextStyle(
-                    color: Colors.white, // Set text color to white
+
+                _buildTextFormField(
+                  controller: _driverNameController,
+                  label: 'Driver Name',
+                  keyboardType: TextInputType.text,
+                ),
+                // _buildDropdownField(
+                //   'Truck Type',
+                //   ['Type 1', 'Type 2', 'Type 3'],
+                // ),
+                _buildDropdownField(
+                  label: 'Truck Type',
+                  options: truckTypes,
+                  selectedValue: selectedTruckType,
+                  onChanged: (value) {
+                    setState(() {
+                      selectedTruckType = value!;
+                    });
+                  },
+                ),
+
+                const SizedBox(height: 16),
+                _buildAutocompleteField(
+                  controller: vendorController,
+                  label: 'Vendor',
+                  getSuggestions: _logisticsService.fetchVendors,
+                  onSelected: (value) async {
+                    double tdsRate = await _logisticsService.fetchTdsRate(value);
+                    setState(() {
+                      _tdsRateController.text = tdsRate.toString();
+                    });
+                  },
+                ),
+                // _buildDropdownField(
+                //   'Transaction Status',
+                //   ['Open'],
+                // ),
+
+                _buildDropdownField(
+                  label: 'Transaction Status',
+                  options: _editingId == null ? ['Open'] : transactionStatuses,
+                  selectedValue: selectedTransactionStatus ?? 'Open',
+                  onChanged: _editingId == null
+                      ? (value) {} // Provide an empty function instead of null
+                      : (value) {
+                    setState(() {
+                      selectedTransactionStatus =  value ?? 'Open';
+                    });
+                  },
+                ),
+
+
+                const SizedBox(height: 16),
+                Autocomplete<Map<String, dynamic>>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    handleDestinationFrom(textEditingValue.text);
+                    return filteredDestinationFrom;
+                  },
+                  displayStringForOption: (option) => option['from'],
+                  onSelected: (selection) {
+                    destinationFromController.text = selection['from'];
+                    calculateRate();
+                  },
+                  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                    destinationFromController = controller;
+                    return TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        labelText: 'Destination From',
+                        border: OutlineInputBorder(),
+                      ),
+                    );
+                  },
+                ),
+                SizedBox(height: 16),
+                Autocomplete<Map<String, dynamic>>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    handleDestinationTo(textEditingValue.text);
+                    return filteredDestinationTo;
+                  },
+                  displayStringForOption: (option) => option['to'],
+                  onSelected: (selection) {
+                    destinationToController.text = selection['to'];
+                    calculateRate();
+                  },
+                  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                    destinationToController = controller;
+                    return TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: InputDecoration(
+                        labelText: 'Destination To',
+                        border: OutlineInputBorder(),
+                      ),
+                    );
+                  },
+                ),
+            SizedBox(height: 16),
+                _buildTextFormField(
+                  controller: weightController,
+                  label: 'Weight',
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                _buildTextFormField(
+                  controller: _freightController,
+                  // Use the controller's text to display the value
+                  label: 'Freight: ₹${_freightController.text}',
+                  keyboardType: TextInputType.number,
+                  readOnly: true,
+            ),
+                SizedBox(height: 16),
+                // _buildTextFormField(
+                //   controller: _dieselController,
+                //   label: 'Diesel',
+                //   keyboardType: TextInputType.number,
+                // ),
+                _buildTextFormField(
+                  controller: _dieselAmountController,
+                  label: 'Diesel Amount',
+                  keyboardType: TextInputType.number,
+                ),
+                _buildTextFormField(
+                  controller: _dieselSlipNumberController,
+                  label: 'Diesel Slip Number',
+                  keyboardType: TextInputType.number,
+                ),
+                _buildTextFormField(
+                  controller: _tdsRateController,
+                  label: 'tds Rate',
+                  keyboardType: TextInputType.number,
+                ),
+                _buildTextFormField(
+                  controller: _advanceController,
+                  label: 'Advance',
+                  keyboardType: TextInputType.number,
+                ),
+                _buildTextFormField(
+                  controller: _tollController,
+                  label: 'Toll',
+                  keyboardType: TextInputType.number,
+                ),
+                _buildTextFormField(
+                  controller: _adblueController,
+                  label: 'Adblue',
+                  keyboardType: TextInputType.number,
+                ),
+                _buildTextFormField(
+                  controller: _greasingController,
+                  label: 'Greasing',
+                  keyboardType: TextInputType.number,
+                ),
+
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    backgroundColor: const Color(0xFF5C2F95), // Purple shade
                   ),
-                ),
+                  child: const Text(
+                    "Submit",
+                    style: TextStyle(
+                      color: Colors.white, // Set text color to white
+                    ),
+                  ),
 
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -797,7 +819,7 @@ class _TruckDetailsScreenState extends State<TruckDetailsScreen> {
           tripId: _editingId,
           truckNumber: truckNumberController.text,
           username:username,
-          profile:username,
+          profile:profile,
           doNumber: _doNumberController.text,
           // transactionStatus:selectedTransactionStatus,
           transactionStatus: selectedTransactionStatus ?? 'Open',

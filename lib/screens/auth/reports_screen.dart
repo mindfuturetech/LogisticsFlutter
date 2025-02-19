@@ -355,6 +355,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
         truckNumber: _truckController.text.trim(),
       );
 
+      // Additional client-side sort to ensure consistency
+      reports.sort((a, b) {
+        if (a.createdAt == null && b.createdAt == null) return 0;
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+
       setState(() {
         _reports = reports;
         _showVendorSuggestions = false;
@@ -376,7 +384,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       setState(() => _isLoading = false);
     }
   }
-
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -443,6 +450,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         });
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: const Text('Reports'),
           actions: [
@@ -493,6 +501,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min, // Prevent unnecessary expansion
                   children: [
                     Row(
                       children: [
@@ -514,13 +523,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(child: _buildVendorInput()),
-                        const SizedBox(width: 14),
-                        Expanded(child: _buildTruckInput()),
-                      ],
-                    ),
+                    // Row(
+                    //   children: [
+                    //     Expanded(child: _buildVendorInput()),
+                    //     const SizedBox(width: 14),
+                    //     Expanded(child: _buildTruckInput()),
+                    //   ],
+                    // ),
+                    
                     const SizedBox(height: 14),
                     ElevatedButton(
                       onPressed: _fetchReports,

@@ -7,6 +7,7 @@ import 'package:open_file/open_file.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../model/truck_details_model.dart';
+import 'package:path/path.dart' as path;
 
 
 class ReportsService {
@@ -17,7 +18,7 @@ class ReportsService {
     // Use platform-aware base URL
     baseUrl: baseUrl ?? getPlatformSpecificBaseUrl(),
     connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 3),
+    receiveTimeout: const Duration(seconds: 5),
   ));
 
   // Platform-specific base URL helper
@@ -44,6 +45,8 @@ class ReportsService {
         if (endDate != null) 'endDate': dateFormat.format(endDate),
         if (vendor?.isNotEmpty ?? false) 'vendor': vendor!.trim(),
         if (truckNumber?.isNotEmpty ?? false) 'truckNumber': truckNumber!.trim(),
+        'sort': 'createdAt',  // Add sorting parameter
+        'order': 'desc'       // Specify descending order
       };
 
       print('Fetching reports with filters:');
@@ -51,6 +54,8 @@ class ReportsService {
       print('End Date: ${queryParams['endDate']}');
       print('Vendor: ${queryParams['vendor']}');
       print('Truck: ${queryParams['truckNumber']}');
+      print('Sort: ${queryParams['sort']}');
+      print('Order: ${queryParams['order']}');
       print('Request URL: ${_dio.options.baseUrl}/api/reports');
       print('Query Parameters: $queryParams');
 
@@ -70,7 +75,17 @@ class ReportsService {
 
       if (response.data != null && response.data['tableData'] != null) {
         final List<dynamic> tableData = response.data['tableData'];
-        return tableData.map((json) => TripDetails.fromJson(json)).toList();
+        List<TripDetails> reports = tableData.map((json) => TripDetails.fromJson(json)).toList();
+
+        // Additional client-side sorting as a fallback
+        reports.sort((a, b) {
+          if (a.createdAt == null && b.createdAt == null) return 0;
+          if (a.createdAt == null) return 1;
+          if (b.createdAt == null) return -1;
+          return b.createdAt!.compareTo(a.createdAt!);
+        });
+
+        return reports;
       }
 
       return [];
@@ -123,7 +138,9 @@ class ReportsService {
       double weight,
       double actualWeight,
       String transactionStatus,
-      Map<String, File?> files) async {
+      Map<String, File?> selectedFiles,
+      {required Map<String, dynamic> uploadedFiles} // Changed to Map<String, dynamic>
+      ) async {
     try {
       print('Updating report with ID: $id');
 
@@ -146,7 +163,7 @@ class ReportsService {
         'WeightmentSlip'
       ];
 
-      for (var entry in files.entries) {
+      for (var entry in selectedFiles.entries) {
         if (entry.value != null && validFileFields.contains(entry.key)) {
           print('Adding file for field: ${entry.key}');
 
@@ -214,6 +231,54 @@ class ReportsService {
   //     throw Exception('Failed to fetch trucks: ${e.message}');
   //   }
   // }
+  // Future<void> downloadFile(String id, String field, String? originalName) async {
+  //   if (originalName == null || originalName.isEmpty) {
+  //     throw Exception('Invalid file name');
+  //   }
+  //
+  //   try {
+  //     final url = '$baseUrl/api/download/$id/$field';
+  //     print('Downloading from: $url');
+  //
+  //     final response = await http.get(
+  //       Uri.parse(url),
+  //       headers: {
+  //         'Accept': '*/*',
+  //         // Add any other required headers
+  //       },
+  //     );
+  //
+  //     print('Response status: ${response.statusCode}');
+  //
+  //     if (response.statusCode == 200) {
+  //       final directory = await getTemporaryDirectory();
+  //       final filePath = '${directory.path}/$originalName';
+  //
+  //       print('Saving file to: $filePath');
+  //
+  //       final file = File(filePath);
+  //       await file.writeAsBytes(response.bodyBytes);
+  //
+  //       final result = await OpenFile.open(filePath);
+  //       if (result.type != ResultType.done) {
+  //         throw Exception('Failed to open file: ${result.message}');
+  //       }
+  //     } else {
+  //       // Parse error message from response if available
+  //       String errorMessage;
+  //       try {
+  //         final errorData = jsonDecode(response.body);
+  //         errorMessage = errorData['message'] ?? 'Unknown error occurred';
+  //       } catch (e) {
+  //         errorMessage = 'Error downloading file (${response.statusCode})';
+  //       }
+  //       throw Exception(errorMessage);
+  //     }
+  //   } catch (e) {
+  //     print('Download error details: $e');
+  //     rethrow;
+  //   }
+  // }
   Future<void> downloadFile(String id, String field, String? originalName) async {
     if (originalName == null || originalName.isEmpty) {
       throw Exception('Invalid file name');
@@ -234,8 +299,27 @@ class ReportsService {
       print('Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final directory = await getTemporaryDirectory();
-        final filePath = '${directory.path}/$originalName';
+        // Get the downloads directory path, depending on platform
+        final Directory downloadsDir;
+
+        if (Platform.isAndroid) {
+          // On Android, save to the Downloads folder
+          downloadsDir = Directory('/storage/emulated/0/Download');
+          if (!await downloadsDir.exists()) {
+            await downloadsDir.create(recursive: true);
+          }
+        } else if (Platform.isIOS) {
+          // On iOS, save to Documents directory
+          downloadsDir = await getApplicationDocumentsDirectory();
+        } else {
+          // Fallback for other platforms
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
+
+        // Create a unique filename to prevent overwriting
+        final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+        final filename = '${path.basenameWithoutExtension(originalName)}_$timestamp${path.extension(originalName)}';
+        final filePath = '${downloadsDir.path}/$filename';
 
         print('Saving file to: $filePath');
 
@@ -262,7 +346,6 @@ class ReportsService {
       rethrow;
     }
   }
-
 
   Future<List<String>> getVendors() async {
     try {
@@ -353,6 +436,70 @@ class ReportsService {
       throw Exception('Failed to fetch trucks: $e');
     }
   }
+  // Method to upload a single file
+  Future<Map<String, dynamic>?> uploadFile(File file, String field) async {
+    try {
+      // Create form data
+      String fileName = path.basename(file.path);
+      FormData formData = FormData.fromMap({
+        'field': field,
+        'file': await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+          // You can add content type if needed
+          // contentType: MediaType('image', 'jpeg'),
+        ),
+      });
+
+      // Make the API call
+      Response response = await _dio.post(
+        '$baseUrl/upload',
+        data: formData,
+        options: Options(
+          headers: {
+            // Add any required headers
+            'Authorization': 'Bearer YOUR_AUTH_TOKEN', // Replace with actual token
+            'Accept': 'application/json',
+          },
+        ),
+        onSendProgress: (int sent, int total) {
+          // You can track upload progress here
+          final progress = (sent / total * 100).toStringAsFixed(2);
+          print('Upload Progress: $progress%');
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'data': response.data,
+          'field': field,
+          'originalName': fileName,
+        };
+      } else {
+        throw Exception('Failed to upload file. Status: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      // Handle Dio specific errors
+      String errorMessage = 'Upload failed';
+
+      if (e.response != null) {
+        // Server responded with error
+        errorMessage = e.response?.data?['message'] ?? 'Server error occurred';
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        errorMessage = 'Connection timed out';
+      } else if (e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = 'Server not responding';
+      } else if (e.type == DioExceptionType.sendTimeout) {
+        errorMessage = 'Failed to send request';
+      }
+
+      throw Exception(errorMessage);
+    } catch (e) {
+      throw Exception('Error uploading file: $e');
+    }
+  }
+
 }
 
 

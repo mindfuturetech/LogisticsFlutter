@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:logistics/screens/auth/home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,6 +19,16 @@ class _LoginScreenState extends State<LoginScreen> {
   String _errorMessage = '';
   bool _obscurePassword = true;
 
+  Future<void> _saveAuthData(String profile,String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    // await prefs.setString('auth_token', token);
+    // await prefs.setString('user_profile', profile.toJson());  // Assuming toJson returns a string
+    await prefs.setString('profile', profile);
+    await prefs.setString('_username', username);  // Changed from 'username' to '_username'
+    print(username);
+    await prefs.setBool('is_logged_in', true);
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -25,12 +37,64 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = '';
     });
 
+    // try {
+    //   await _authService.login(_username, _password);
+    //   // Navigator.of(context).pushReplacementNamed('/home');
+    //   // Pass the username when navigating to home screen
+    //   print('Navigating to home with username: $_username');
+    //   Navigator.of(context).pushReplacementNamed('/home', arguments: _username);
+    //
+    // } catch (e) {
+    //   setState(() {
+    //     _errorMessage = e.toString();
+    //   });
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text(_errorMessage),
+    //       backgroundColor: Colors.red,
+    //     ),
+    //   );
+    // } finally {
+    //   setState(() {
+    //     _isLoading = false;
+    //   });
+    // }
+
+    //new code
     try {
-      await _authService.login(_username, _password);
-      // Navigator.of(context).pushReplacementNamed('/home');
-      // Pass the username when navigating to home screen
-      print('Navigating to home with username: $_username');
-      Navigator.of(context).pushReplacementNamed('/home', arguments: _username);
+      final authResponse = await _authService.login(_username, _password);
+
+      // Extract token and role from response
+      // final token = authResponse['token'];
+      final profile = authResponse['profile']; // Expecting 'Accountant' or 'Manager'
+
+      // final profile = UserProfile(
+      //   username: _username,
+      //   role: userRole,
+      // );
+
+      // Save the auth data
+      await _saveAuthData( profile,_username);
+
+      // // Navigate based on role
+      // _navigateBasedOnRole(profile);
+      // Navigator.of(context).pushReplacementNamed(
+      //     '/home',
+      //     // arguments: _username
+      //     arguments: {
+      //      'username': _username,
+      //      'profile': profile,
+      //     },
+      // );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => TruckDetailsScreen(
+            username: _username,
+            profile: profile,
+          ),
+        ),
+            (Route<dynamic> route) => false, // Removes the login screen from history
+      );
 
     } catch (e) {
       setState(() {
@@ -86,7 +150,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
                           blurRadius: 10,
-                          spreadRadius: 5,
+                          offset: const Offset(0, 0),
+                          spreadRadius: 0,
                         ),
                       ],
                     ),
@@ -106,10 +171,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 32),
 
-                        // Login Text
+                        // Login Text (unchanged)
                         Text(
                           'Login',
-                          style: Theme.of(context).textTheme.headlineMedium,
+                          style: Theme
+                              .of(context)
+                              .textTheme
+                              .headlineMedium,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
@@ -124,6 +192,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             prefixIcon: const Icon(Icons.person),
                             filled: true,
                             fillColor: Colors.white,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF4CAF50),
+                              ),
+                            ),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -157,6 +237,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             filled: true,
                             fillColor: Colors.white,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF4CAF50),
+                              ),
+                            ),
                           ),
                           obscureText: _obscurePassword,
                           validator: (value) {
@@ -169,7 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Login Button
+                        // Login Button (unchanged text color)
                         SizedBox(
                           height: 48,
                           child: ElevatedButton(
@@ -193,6 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Login',
                               style: TextStyle(
                                 fontSize: 16,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -202,7 +295,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Sign Up and Reset Password Links
                         TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/signup'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/signup'),
                           child: const Text(
                             "Don't have an account yet? Sign up",
                             textAlign: TextAlign.center,
