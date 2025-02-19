@@ -60,6 +60,11 @@ class AuthService {
     } catch (e) {
       throw Exception('Logout failed: $e');
     }
+    // Function to clear user session (remove stored credentials)
+    Future<void> clearSession() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear(); // Clears all stored authentication data
+    }
   }
 
 

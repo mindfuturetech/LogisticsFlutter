@@ -355,6 +355,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
         truckNumber: _truckController.text.trim(),
       );
 
+      // Additional client-side sort to ensure consistency
+      reports.sort((a, b) {
+        if (a.createdAt == null && b.createdAt == null) return 0;
+        if (a.createdAt == null) return 1;
+        if (b.createdAt == null) return -1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+
       setState(() {
         _reports = reports;
         _showVendorSuggestions = false;
@@ -376,7 +384,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       setState(() => _isLoading = false);
     }
   }
-
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
