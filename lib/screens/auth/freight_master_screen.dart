@@ -27,12 +27,19 @@ class _FreightScreenState extends State<FreightScreen> {
     _fetchFreightData();
   }
 
+  String capitalizeFirstLetter(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1).toLowerCase();
+  }
+
+
   Future<void> _fetchFreightData() async {
     try {
       final response = await http.get(Uri.parse(getFreightDataUrl));
       if (response.statusCode == 200) {
         setState(() {
-          _freightList = List<Map<String, dynamic>>.from(json.decode(response.body));
+          _freightList =
+          List<Map<String, dynamic>>.from(json.decode(response.body));
         });
       } else {
         setState(() {
@@ -53,12 +60,16 @@ class _FreightScreenState extends State<FreightScreen> {
         "to_destination": _toController.text,
         "rate": double.parse(_rateController.text),
       };
+
       try {
         final response = await http.post(
           Uri.parse(insertFreightDataUrl),
           headers: {"Content-Type": "application/json"},
           body: json.encode(payload),
         );
+
+        final responseData = json.decode(response.body);
+
         if (response.statusCode == 200) {
           setState(() {
             _freightList.add({
@@ -67,18 +78,56 @@ class _FreightScreenState extends State<FreightScreen> {
               "to": payload["to_destination"],
               "rate": payload["rate"],
             });
-            _message = "Freight data added successfully!";
           });
           _clearForm();
+
+          // Show success message in green
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Freight data added successfully!",
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
         } else {
-          setState(() {
-            _message = "Failed to add freight data.";
-          });
+          // Show error message in red
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                responseData['message'] ?? "Failed to add freight data.",
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
         }
       } catch (e) {
-        setState(() {
-          _message = "Error adding data: $e";
-        });
+        String errorMessage;
+        if (e is FormatException) {
+          errorMessage = "Invalid server response. Please try again.";
+        } else if (e is http.ClientException) {
+          errorMessage =
+          "Connection failed. Please check your internet connection.";
+        } else {
+          errorMessage = "Unable to add freight data. Please try again.";
+        }
+
+        // Show error message in red
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              errorMessage,
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        print("Error details: $e"); // For debugging purposes
       }
     }
   }
@@ -92,8 +141,8 @@ class _FreightScreenState extends State<FreightScreen> {
           "rate": oldData["rate"],
         },
         "new": {
-          "from": oldData["from"],  // Keep the original from
-          "to": oldData["to"],      // Keep the original to
+          "from": oldData["from"], // Keep the original from
+          "to": oldData["to"], // Keep the original to
           "rate": double.parse(_editRateController.text),
         },
       };
@@ -214,6 +263,13 @@ class _FreightScreenState extends State<FreightScreen> {
                       labelText: "From Destination",
                       border: OutlineInputBorder(),
                     ),
+                    onChanged: (value) {
+                      final capitalizedText = capitalizeFirstLetter(value);
+                      _fromController.value = TextEditingValue(
+                        text: capitalizedText,
+                        selection: TextSelection.collapsed(offset: capitalizedText.length),
+                      );
+                    },
                     validator: (value) => value!.isEmpty ? "Enter a source" : null,
                   ),
                   SizedBox(height: 16),
@@ -223,6 +279,13 @@ class _FreightScreenState extends State<FreightScreen> {
                       labelText: "To Destination",
                       border: OutlineInputBorder(),
                     ),
+                    onChanged: (value) {
+                      final capitalizedText = capitalizeFirstLetter(value);
+                      _toController.value = TextEditingValue(
+                        text: capitalizedText,
+                        selection: TextSelection.collapsed(offset: capitalizedText.length),
+                      );
+                    },
                     validator: (value) => value!.isEmpty ? "Enter a destination" : null,
                   ),
                   SizedBox(height: 16),
@@ -245,19 +308,36 @@ class _FreightScreenState extends State<FreightScreen> {
                     child: const Text(
                       "Submit",
                       style: TextStyle(
-                        color: Colors.white, // Set text color to white
+                        color: Colors.white,
                       ),
                     ),
                   ),
+                  // Message display container
                   if (_message.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(_message, style: TextStyle(color: Colors.green)),
+                    Container(
+                      padding: EdgeInsets.all(8.0),
+                      margin: EdgeInsets.symmetric(vertical: 10.0),
+                      decoration: BoxDecoration(
+                        color: _message.contains("successfully")
+                            ? Colors.green.withOpacity(0.1)
+                            : Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _message,
+                        style: TextStyle(
+                          color: _message.contains("successfully")
+                              ? Colors.green
+                              : Colors.red,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
+                  SizedBox(height: 16),
                 ],
               ),
             ),
-            SizedBox(height: 16),
+            // List view of freight items
             Expanded(
               child: ListView.builder(
                 itemCount: _freightList.length,

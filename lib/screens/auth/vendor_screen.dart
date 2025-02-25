@@ -41,6 +41,10 @@ class _VendorScreenState extends State<VendorScreen> {
     super.dispose();
   }
 
+  String capitalizeFirstLetter(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1).toLowerCase();
+  }
   // Data loading methods
   Future<void> _loadVendorData() async {
     if (!mounted) return;
@@ -89,20 +93,44 @@ class _VendorScreenState extends State<VendorScreen> {
         await _loadVendorData();
 
         if (!mounted) return;
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Vendor added successfully',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
         setState(() {
-          submitMessage = 'Vendor added successfully';
           isLoading = false;
         });
-      } catch (e) {
+
+      } catch (error) {
         if (!mounted) return;
+
+        // Show error message from backend
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error.toString(),
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
         setState(() {
-          submitMessage = 'Error: ${e.toString()}';
           isLoading = false;
         });
       }
     }
   }
-
   void _clearForm() {
     _companyNameController.clear();
     _companyOwnerController.clear();
@@ -261,6 +289,13 @@ class _VendorScreenState extends State<VendorScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.business),
                 ),
+                onChanged: (value) {
+                  final capitalizedText = capitalizeFirstLetter(value);
+                  _companyNameController.value = TextEditingValue(
+                    text: capitalizedText,
+                    selection: TextSelection.collapsed(offset: capitalizedText.length),
+                  );
+                },
                 validator: (value) =>
                 value?.isEmpty ?? true ? 'Please enter vendor name' : null,
               ),
@@ -272,6 +307,13 @@ class _VendorScreenState extends State<VendorScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.person),
                 ),
+                onChanged: (value) {
+                  final capitalizedText = capitalizeFirstLetter(value);
+                  _companyOwnerController.value = TextEditingValue(
+                    text: capitalizedText,
+                    selection: TextSelection.collapsed(offset: capitalizedText.length),
+                  );
+                },
                 validator: (value) =>
                 value?.isEmpty ?? true ? 'Please enter vendor owner' : null,
               ),
@@ -283,8 +325,7 @@ class _VendorScreenState extends State<VendorScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.percent),
                 ),
-                keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
                   if (value?.isEmpty ?? true) return 'Please enter TDS rate';
                   if (double.tryParse(value!) == null) {
@@ -301,7 +342,13 @@ class _VendorScreenState extends State<VendorScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.credit_card),
                 ),
-                textCapitalization: TextCapitalization.characters,
+                onChanged: (value) {
+                  final upperText = value.toUpperCase();
+                  _panController.value = TextEditingValue(
+                    text: upperText,
+                    selection: TextSelection.collapsed(offset: upperText.length),
+                  );
+                },
                 validator: (value) =>
                 value?.isEmpty ?? true ? 'Please enter PAN' : null,
               ),
@@ -313,7 +360,13 @@ class _VendorScreenState extends State<VendorScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.receipt_long),
                 ),
-                textCapitalization: TextCapitalization.characters,
+                onChanged: (value) {
+                  final upperText = value.toUpperCase();
+                  _gstController.value = TextEditingValue(
+                    text: upperText,
+                    selection: TextSelection.collapsed(offset: upperText.length),
+                  );
+                },
                 validator: (value) =>
                 value?.isEmpty ?? true ? 'Please enter GST' : null,
               ),
@@ -325,13 +378,9 @@ class _VendorScreenState extends State<VendorScreen> {
                   onPressed: isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5C2F95),
-                    // Purple background
                     foregroundColor: Colors.white,
-                    // White text and icon color
                     disabledBackgroundColor: Colors.grey,
-                    // Grey background when disabled
-                    disabledForegroundColor: Colors
-                        .white70, // Light white text/icon when disabled
+                    disabledForegroundColor: Colors.white70,
                   ),
                   icon: isLoading
                       ? const SizedBox(
@@ -345,21 +394,17 @@ class _VendorScreenState extends State<VendorScreen> {
                       : const Icon(Icons.add_business),
                   label: const Text(
                     'Add Vendor',
-                    style: TextStyle(
-                        color: Colors.white), // Ensure text is white
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
-
               if (submitMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
                     submitMessage!,
                     style: TextStyle(
-                      color: submitMessage!.startsWith('Error')
-                          ? Colors.red
-                          : Colors.green,
+                      color: submitMessage!.startsWith('Error') ? Colors.red : Colors.green,
                     ),
                   ),
                 ),

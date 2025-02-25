@@ -2,16 +2,16 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 
-class FileFieldWidget extends StatelessWidget {
+class FileFieldWidget extends StatefulWidget {
   final String label;
   final String field;
   final Map<String, dynamic>? fileData;
   final bool isEditing;
-  final bool isLoading;
-  final File? selectedFile;
-  final Function(String field) onFilePick;
-  final Function(String id, String field, Map<String, dynamic> fileData) onDownload;
+  final Map<String, File?> selectedFiles;  // Changed to nullable File
+  final Function(String) onPickFile;
+  final Function(String, String, Map<String, dynamic>) onDownload;
 
   const FileFieldWidget({
     Key? key,
@@ -19,99 +19,97 @@ class FileFieldWidget extends StatelessWidget {
     required this.field,
     required this.fileData,
     required this.isEditing,
-    required this.isLoading,
-    required this.selectedFile,
-    required this.onFilePick,
+    required this.selectedFiles,
+    required this.onPickFile,
     required this.onDownload,
   }) : super(key: key);
+
+  @override
+  State<FileFieldWidget> createState() => _FileFieldWidgetState();
+}
+
+class _FileFieldWidgetState extends State<FileFieldWidget> {
+  bool isDownloading = false;
+
+  Future<void> _handleDownload() async {
+    setState(() {
+      isDownloading = true;
+    });
+
+    try {
+      await widget.onDownload(
+          widget.field,
+          widget.fileData!['filepath'],
+          widget.fileData!
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isDownloading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 120,
             child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+                widget.label,
+                style: const TextStyle(fontWeight: FontWeight.bold)
             ),
           ),
           Expanded(
-            child: isEditing
-                ? Row(
+            child: widget.isEditing
+                ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ElevatedButton(
-                  onPressed: () => onFilePick(field),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                  ),
+                  onPressed: () => widget.onPickFile(widget.field),
                   child: Text(
-                    selectedFile != null ? 'Change File' : 'Select File',
-                    style: const TextStyle(color: Colors.white),
+                      widget.selectedFiles[widget.field] != null
+                          ? 'Change File'
+                          : 'Select File'
                   ),
                 ),
-                if (selectedFile != null)
+                if (widget.selectedFiles[widget.field] != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.only(left: 8, top: 8),
                     child: Text(
-                      selectedFile!.path.split('/').last,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                      ),
+                      path.basename(widget.selectedFiles[widget.field]!.path),
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
               ],
             )
-                : fileData != null && fileData!['filepath'] != null
+                : widget.fileData != null && widget.fileData!['filepath'] != null
                 ? TextButton.icon(
-              onPressed: isLoading
+              onPressed: isDownloading
                   ? null
-                  : () => onDownload(
-                fileData!['id'] ?? '',
-                field,
-                fileData!,
-              ),
-              icon: isLoading
+                  : _handleDownload,
+              icon: isDownloading
                   ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.blue,
-                  ),
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
-                  : const Icon(Icons.file_download, color: Colors.blue),
+                  : const Icon(Icons.file_download),
               label: Text(
-                isLoading
+                isDownloading
                     ? 'Downloading...'
-                    : fileData!['originalname'] ?? 'Download',
-                style: TextStyle(
-                  color: isLoading ? Colors.grey : Colors.blue,
-                ),
-              ),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                backgroundColor: Colors.grey[100],
+                    : widget.fileData!['originalname'] ?? 'Download',
+                softWrap: true,
               ),
             )
                 : const Text(
-              'No file',
-              style: TextStyle(
-                color: Colors.red,
-                fontStyle: FontStyle.italic,
-              ),
+                'No file',
+                style: TextStyle(color: Colors.red)
             ),
           ),
         ],

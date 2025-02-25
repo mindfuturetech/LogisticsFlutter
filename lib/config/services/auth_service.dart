@@ -30,17 +30,26 @@ class AuthService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        print('Success: ${response.statusCode}');
-         setAuthToken(true);
-        return json.decode(response.body);
+      final responseData = json.decode(response.body);
 
+      if (response.statusCode == 200) {
+        await setAuthToken(true);
+        return responseData;
       } else {
-        final errorData = json.decode(response.body);
-        throw Exception(errorData['message'] ?? 'Login failed');
+        // Directly throw the error message from backend
+        throw responseData['message'] ?? 'Login failed';
       }
     } catch (e) {
-      throw Exception('Network error: $e');
+      // If the error is already a String (from our throw above), return it directly
+      if (e is String) {
+        throw e;
+      }
+      // For actual network errors, you might want to show a more user-friendly message
+      if (e is http.ClientException) {
+        throw 'Connection failed. Please check your internet connection.';
+      }
+      // For any other unexpected errors
+      throw 'Unable to connect to server. Please try again.';
     }
   }
 

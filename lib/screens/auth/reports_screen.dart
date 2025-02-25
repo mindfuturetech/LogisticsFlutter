@@ -372,8 +372,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (_reports.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No reports found for the selected filters'),
-            backgroundColor: Colors.orange,
+            content: Text('No record available'),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -523,13 +523,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Row(
-                    //   children: [
-                    //     Expanded(child: _buildVendorInput()),
-                    //     const SizedBox(width: 14),
-                    //     Expanded(child: _buildTruckInput()),
-                    //   ],
-                    // ),
+                    Row(
+                      children: [
+                        Expanded(child: _buildVendorInput()),
+                        const SizedBox(width: 14),
+                        Expanded(child: _buildTruckInput()),
+                      ],
+                    ),
                     
                     const SizedBox(height: 14),
                     ElevatedButton(

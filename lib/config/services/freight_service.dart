@@ -18,17 +18,39 @@ class FreightService {
   }
 
   static Future<void> addFreightData(Freight freight) async {
-    final response = await http.post(
-      Uri.parse(baseUrl),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(freight.toJson()),
-    );
-    if (response.statusCode != 201) {
-      throw Exception('Failed to add freight data');
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(freight.toJson()),
+      );
+
+      if (response.statusCode == 201) {
+        return; // Success case
+      }
+
+      // Handle error response from backend
+      final errorData = json.decode(response.body);
+      throw errorData['message'] ?? 'Failed to add freight data';
+
+    } catch (e) {
+      // If it's already a String (from our throw above), return it directly
+      if (e is String) {
+        throw e;
+      }
+      // For parsing errors
+      if (e is FormatException) {
+        throw 'Invalid response from server';
+      }
+      // For network errors
+      if (e is http.ClientException) {
+        throw 'Connection failed. Please check your internet connection.';
+      }
+      // For any other unexpected errors
+      throw 'Unable to add freight data. Please try again.';
     }
   }
 }
-
 
 
 // // Update freight rate

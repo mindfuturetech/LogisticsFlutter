@@ -46,19 +46,35 @@ class VendorService {
 
   Future<void> addVendor(VendorModel vendor) async {
     try {
-      final requestBody = json.encode(vendor.toJson());
-
       final response = await http.post(
         Uri.parse('$baseUrl/add-vendor'),
         headers: {'Content-Type': 'application/json'},
-        body: requestBody,
+        body: json.encode(vendor.toJson()),
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('Failed to add vendor: ${response.statusCode}');
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return; // Success case
+      } else {
+        // Throw the error message from backend
+        throw responseData['message'] ?? 'Failed to add vendor';
       }
     } catch (e) {
-      throw Exception('Error adding vendor: $e');
+      // If it's already a String (from our throw above), rethrow it
+      if (e is String) {
+        throw e;
+      }
+      // For parsing errors
+      if (e is FormatException) {
+        throw 'Invalid server response';
+      }
+      // For network errors
+      if (e is http.ClientException) {
+        throw 'Connection failed. Please check your internet connection.';
+      }
+      // For any other unexpected errors
+      throw 'Unable to add vendor. Please try again.';
     }
   }
 }

@@ -27,36 +27,47 @@ class BillService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+      final data = json.decode(response.body);
+
+      // Check if the response contains the expected data structure
+      if (response.statusCode == 200 && data.containsKey('resultData')) {
+        // Handle null or empty resultData
+        if (data['resultData'] == null || data['resultData'].isEmpty) {
+          return [];
+        }
+
         return List<TripDetails>.from(
-          data['resultData'].map((x) =>
-              TripDetails(
-                truckNumber: x['TruckNumber'],
-                doNumber: x['DONumber'],
-                driverName: x['DriverName'],
-                vendor: x['Vendor'],
-                destinationFrom: x['DestinationFrom'],
-                destinationTo: x['DestinationTo'],
-                truckType: x['TruckType'],
-                transactionStatus: x['TransactionStatus'],
-                weight: x['Weight'].toDouble(),
-                freight: x['Freight'].toDouble(),
-                diesel: x['Diesel'].toDouble(),
-                dieselAmount: x['DieselAmount'].toDouble(),
-                dieselSlipNumber: x['DieselSlipNumber'],
-                tdsRate: x['TDS_Rate'].toDouble(),
-                advance: x['Advance'].toDouble(),
-                toll: x['Toll'].toDouble(),
-                adblue: x['Adblue'].toDouble(),
-                greasing: x['Greasing'].toDouble(),
-              )),
+          data['resultData'].map((x) {
+            // Use null-safe access with default values to prevent runtime errors
+            return TripDetails(
+              truckNumber: x['TruckNumber']?.toString() ?? '',
+              doNumber: x['DONumber']?.toString() ?? '',
+              driverName: x['DriverName']?.toString() ?? '',
+              vendor: x['Vendor']?.toString() ?? '',
+              destinationFrom: x['DestinationFrom']?.toString() ?? '',
+              destinationTo: x['DestinationTo']?.toString() ?? '',
+              truckType: x['TruckType']?.toString() ?? '',
+              transactionStatus: x['TransactionStatus']?.toString() ?? '',
+              weight: _parseDouble(x['Weight']),
+              freight: _parseDouble(x['Freight']),
+              diesel: _parseDouble(x['Diesel']),
+              dieselAmount: _parseDouble(x['DieselAmount']),
+              dieselSlipNumber: x['DieselSlipNumber']?.toString() ?? '',
+              tdsRate: _parseDouble(x['TDS_Rate']),
+              advance: _parseDouble(x['Advance']),
+              toll: _parseDouble(x['Toll']),
+              adblue: _parseDouble(x['Adblue']),
+              greasing: _parseDouble(x['Greasing']),
+            );
+          }).toList(),
         );
-      } else {
-        throw Exception('Failed to load bill data');
       }
+
+      // Return empty list for any other status code or invalid response structure
+      return [];
     } catch (e) {
-      throw Exception('Error: $e');
+      // Return empty list instead of throwing exception
+      return [];
     }
   }
 
@@ -198,4 +209,17 @@ class BillService {
 
     return (freight - totalDeductions);
   }
+}
+// Helper function to safely parse doubles
+double _parseDouble(dynamic value) {
+  if (value == null) return 0.0;
+  if (value is num) return value.toDouble();
+  if (value is String) {
+    try {
+      return double.parse(value);
+    } catch (_) {
+      return 0.0;
+    }
+  }
+  return 0.0;
 }

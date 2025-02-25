@@ -53,50 +53,35 @@ class _ReportCardState extends State<ReportCard> {
       transactionStatus = 'Open';
     }
   }
-  // New method for compressing files
-  Future<File?> compressFile(File file) async {
-    try {
-      // Get the original file name without the path
-      final fileName = path.basename(file.path);
-
-      // Get temporary directory
-      final dir = await getTemporaryDirectory();
-
-      // Create target path maintaining the original filename
-      final targetPath = path.join(dir.path, fileName);
-
-      // Compress the image
-      var result = await FlutterImageCompress.compressAndGetFile(
-        file.absolute.path,
-        targetPath,
-        quality: 70,
-        minWidth: 1024,
-        minHeight: 1024,
-      );
-
-      return result != null ? File(result.path) : null;
-    } catch (e) {
-      print('Error compressing file: $e');
-      return null;
-    }
+  // Remove the compression method and add file size check method
+  Future<bool> _checkFileSize(File file) async {
+    final fileSize = await file.length();
+    // 1 MB = 1048576 bytes
+    final oneMB = 1048576;
+    return fileSize <= oneMB;
   }
 
-// Update your _pickFile method
-  Future<void> _pickFile(String field) async {
+// Update your _pickFile method with size validation
+  Future _pickFile(String field) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png'],
+        allowedExtensions: ['pdf'],
       );
 
       if (result != null) {
         File originalFile = File(result.files.single.path!);
 
-        // Compress the file
-        File? compressedFile = await compressFile(originalFile);
+        // Check file size
+        bool isValidSize = await _checkFileSize(originalFile);
+
+        if (!isValidSize) {
+          _showError('File size exceeds 1MB limit. Please upload a smaller file.');
+          return;
+        }
 
         setState(() {
-          selectedFiles[field] = compressedFile ?? originalFile;
+          selectedFiles[field] = originalFile;
         });
       }
     } catch (e) {
@@ -104,31 +89,49 @@ class _ReportCardState extends State<ReportCard> {
     }
   }
 
-// Update your _saveChanges method
-  Future<void> _saveChanges() async {
+// Update your _saveChanges method (without compression)
+  Future _saveChanges() async {
     setState(() => isLoading = true);
     try {
       // Create a map to store upload results
       Map<String, dynamic> uploadedFiles = {};
 
-      // Upload and compress each file
+      // Upload each file
       for (var entry in selectedFiles.entries) {
         if (entry.value != null) {
           try {
+            print('Preparing to upload file for field: ${entry.key}');
+
             // Upload the file and get the response
             var uploadResult = await _reportsService.uploadFile(
               entry.value!,
               entry.key,
             );
 
+            print('Upload result for ${entry.key}: $uploadResult');
+
             if (uploadResult != null) {
+              // Store the result
               uploadedFiles[entry.key] = uploadResult;
             }
           } catch (e) {
             print('Error uploading ${entry.key}: $e');
+            // Continue with other files even if one fails
+            _showError('Error uploading ${entry.key}: $e');
           }
         }
       }
+
+      print('All uploads finished. uploadedFiles: $uploadedFiles');
+
+      // Check if any files were uploaded successfully
+      if (uploadedFiles.isEmpty && selectedFiles.isNotEmpty) {
+        _showError('No files were uploaded successfully.');
+        setState(() => isLoading = false);
+        return;
+      }
+
+      print('Preparing to update report...');
 
       // Update report with file information
       await _reportsService.updateReport(
@@ -136,8 +139,7 @@ class _ReportCardState extends State<ReportCard> {
         weight,
         double.tryParse(actualWeightController.text) ?? 0.0,
         transactionStatus!,
-        selectedFiles,
-        uploadedFiles: uploadedFiles,
+        uploadedFiles,
       );
 
       setState(() {
@@ -151,11 +153,13 @@ class _ReportCardState extends State<ReportCard> {
 
       _showSuccess('Changes saved successfully');
     } catch (e) {
+      print('Error in _saveChanges: $e');
       _showError('Error saving changes: $e');
     } finally {
       setState(() => isLoading = false);
     }
   }
+
 
   Future<void> _downloadFile(String id, String field, Map<String, dynamic>? fileData) async {
     if (!mounted) return;
@@ -436,7 +440,7 @@ class _ReportCardState extends State<ReportCard> {
                   Padding(
                     padding: const EdgeInsets.only(left: 8, top: 4),
                     child: Text(
-                      'File will be compressed before upload',
+                      'File size must be under 1MB',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey[600],
@@ -471,7 +475,6 @@ class _ReportCardState extends State<ReportCard> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {

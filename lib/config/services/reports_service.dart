@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:http/http.dart' as http;
@@ -17,8 +18,8 @@ class ReportsService {
   ReportsService({String? baseUrl}) : _dio = Dio(BaseOptions(
     // Use platform-aware base URL
     baseUrl: baseUrl ?? getPlatformSpecificBaseUrl(),
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 5),
+    connectTimeout: const Duration(seconds: 8),
+    receiveTimeout: const Duration(seconds: 8),
   ));
 
   // Platform-specific base URL helper
@@ -138,8 +139,7 @@ class ReportsService {
       double weight,
       double actualWeight,
       String transactionStatus,
-      Map<String, File?> selectedFiles,
-      {required Map<String, dynamic> uploadedFiles} // Changed to Map<String, dynamic>
+      Map<String, dynamic> uploadedFiles,
       ) async {
     try {
       print('Updating report with ID: $id');
@@ -163,18 +163,29 @@ class ReportsService {
         'WeightmentSlip'
       ];
 
-      for (var entry in selectedFiles.entries) {
-        if (entry.value != null && validFileFields.contains(entry.key)) {
+      for (var entry in uploadedFiles.entries) {
+        if (validFileFields.contains(entry.key)) {
           print('Adding file for field: ${entry.key}');
 
-          // Create MultipartFile
-          final file = await MultipartFile.fromFile(
-            entry.value!.path,
-            filename: entry.value!.path.split('/').last,
-          );
-
-          // Add to FormData with the exact field name expected by backend
-          formData.files.add(MapEntry(entry.key, file));
+          // Handle the file data correctly based on structure
+          if (entry.value is Map) {
+            // If uploadedFiles contains response data from uploadFile method
+            if (entry.value['data'] != null && entry.value['data']['filepath'] != null) {
+              // If the backend returns a filepath, you might want to send that rather than the original file
+              formData.fields.add(MapEntry(entry.key, entry.value['data']['filepath']));
+            }
+          } else if (entry.value is File) {
+            // If uploadedFiles contains File objects
+            final file = await MultipartFile.fromFile(
+              entry.value.path,
+              filename: path.basename(entry.value.path),
+              contentType: MediaType('application', 'pdf'),
+            );
+            formData.files.add(MapEntry(entry.key, file));
+          } else {
+            // Skip invalid entries
+            print('Skipping invalid entry for ${entry.key}: ${entry.value.runtimeType}');
+          }
         }
       }
 
@@ -446,8 +457,7 @@ class ReportsService {
         'file': await MultipartFile.fromFile(
           file.path,
           filename: fileName,
-          // You can add content type if needed
-          // contentType: MediaType('image', 'jpeg'),
+          contentType: MediaType('application', 'pdf'),
         ),
       });
 
@@ -459,27 +469,33 @@ class ReportsService {
           headers: {
             // Add any required headers
             'Authorization': 'Bearer YOUR_AUTH_TOKEN', // Replace with actual token
-            'Accept': 'application/json',
+            'Accept': 'application/pdf',
           },
         ),
         onSendProgress: (int sent, int total) {
-          // You can track upload progress here
           final progress = (sent / total * 100).toStringAsFixed(2);
           print('Upload Progress: $progress%');
         },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        print('File uploaded successfully: $field');
+        print('Response data: ${response.data}');
+
         return {
           'success': true,
           'data': response.data,
           'field': field,
-          'originalName': fileName,
+          'originalname': fileName,
+          'filepath': response.data['filepath'] ?? '',
         };
       } else {
         throw Exception('Failed to upload file. Status: ${response.statusCode}');
       }
     } on DioException catch (e) {
+      print('Dio error uploading file: ${e.message}');
+      print('Response error: ${e.response?.data}');
+
       // Handle Dio specific errors
       String errorMessage = 'Upload failed';
 
@@ -496,10 +512,10 @@ class ReportsService {
 
       throw Exception(errorMessage);
     } catch (e) {
+      print('General error uploading file: $e');
       throw Exception('Error uploading file: $e');
     }
   }
-
 }
 
 

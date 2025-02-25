@@ -162,6 +162,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
 
 
   Future<void> _searchBills() async {
+    // Input validation
     if ((startDate == null || endDate == null) &&
         selectedVendor == null &&
         selectedTruck == null) {
@@ -173,15 +174,13 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
       return;
     }
 
-    if (startDate != null && endDate != null) {
-      if (startDate!.isAfter(endDate!)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('End date should be greater than or equal to Start Date')),
-          );
-        }
-        return;
+    if (startDate != null && endDate != null && startDate!.isAfter(endDate!)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('End date should be greater than or equal to Start Date')),
+        );
       }
+      return;
     }
 
     setState(() {
@@ -191,18 +190,12 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
     });
 
     try {
-      print("Sending startDate: ${startDate?.toIso8601String()}");
-      print("Sending endDate: ${endDate?.toIso8601String()}");
-
-      // Print request details for debugging
       final requestBody = {
-        'startDate': startDate != null ? DateFormat("yyyy-MM-dd'").format(startDate!) : null,
-        'endDate': endDate != null ? DateFormat("yyyy-MM-dd'").format(endDate!) : null,
+        'startDate': startDate != null ? DateFormat("yyyy-MM-dd").format(startDate!) : null,
+        'endDate': endDate != null ? DateFormat("yyyy-MM-dd").format(endDate!) : null,
         'vendor': selectedVendor,
         'truckNumber': selectedTruck,
       };
-
-      print('Request body: ${json.encode(requestBody)}');
 
       final response = await http.post(
         Uri.parse('https://shreelalchand.com/logistics/list-billing'),
@@ -210,76 +203,77 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
         body: json.encode(requestBody),
       );
 
-      // Print response details for debugging
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        // Check if response has the expected structure
-        if (!data.containsKey('resultData')) {
-          throw Exception('Response missing resultData field');
-        }
-
-        if (data['resultData'] == null) {
+        // Check if there's an error message from backend
+        if (data.containsKey('error')) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(data['error'])),
+            );
+          }
           setState(() {
             bills = [];
           });
           return;
         }
 
-        if (data['resultData'] is! List) {
-          throw Exception('resultData is not a list');
+        // Check for resultData
+        if (!data.containsKey('resultData') || data['resultData'] == null) {
+          setState(() {
+            bills = [];
+          });
+          return;
         }
 
         setState(() {
           bills = List<TripDetails>.from(
-            data['resultData'].map((x) {
-              // Print individual record for debugging
-              print('Processing record: $x');
-              return TripDetails(
-                tripId: x['trip_id']?.toString() ?? '',
-                id: x['_id']?.toString() ?? '',
-                username: x['username']?.toString() ?? '',
-                profile: x['profile']?.toString() ?? '',
-                truckNumber: x['truck_no']?.toString() ?? '',
-                weight: _parseDouble(x['weight']),
-                actualWeight: _parseDouble(x['actual_weight']),
-                differenceInWeight: _parseDouble(x['difference_weight']),
-                freight: _parseDouble(x['freight']),
-                dieselAmount: _parseDouble(x['diesel_amount']),
-                advance: _parseDouble(x['advance']),
-                driverName: x['driver_name']?.toString() ?? '',
-                destinationFrom: x['destination_from']?.toString() ?? '',
-                destinationTo: x['destination_to']?.toString() ?? '',
-                doNumber: x['do_number']?.toString() ?? '',
-                vendor: x['vendor']?.toString() ?? '',
-                truckType: x['truck_type']?.toString() ?? '',
-                transactionStatus: x['transaction_status']?.toString() ?? '',
-                dieselSlipNumber: x['diesel_slip_number']?.toString() ?? '',
-              );
-            }).toList(),
+            data['resultData'].map((x) => TripDetails(
+              tripId: x['trip_id']?.toString() ?? '',
+              id: x['_id']?.toString() ?? '',
+              username: x['username']?.toString() ?? '',
+              profile: x['profile']?.toString() ?? '',
+              truckNumber: x['truck_no']?.toString() ?? '',
+              weight: _parseDouble(x['weight']),
+              actualWeight: _parseDouble(x['actual_weight']),
+              differenceInWeight: _parseDouble(x['difference_weight']),
+              freight: _parseDouble(x['freight']),
+              dieselAmount: _parseDouble(x['diesel_amount']),
+              advance: _parseDouble(x['advance']),
+              driverName: x['driver_name']?.toString() ?? '',
+              destinationFrom: x['destination_from']?.toString() ?? '',
+              destinationTo: x['destination_to']?.toString() ?? '',
+              doNumber: x['do_number']?.toString() ?? '',
+              vendor: x['vendor']?.toString() ?? '',
+              truckType: x['truck_type']?.toString() ?? '',
+              transactionStatus: x['transaction_status']?.toString() ?? '',
+              dieselSlipNumber: x['diesel_slip_number']?.toString() ?? '',
+            )),
           );
         });
       } else {
-        // Print error response details
-        print('Error response: ${response.body}');
-        throw Exception('Server returned ${response.statusCode}: ${response.body}');
+        // Show backend error message if available, otherwise show generic message
+        final errorMessage = data['error'] ?? 'No records found';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+        }
+        setState(() {
+          bills = [];
+        });
       }
-    } catch (e, stackTrace) {
-      // Print detailed error information
-      print('Error in _searchBills: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e) {
+      // Only show generic error for network/parsing issues
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading bills: ${e.toString()}'),
-            duration: const Duration(seconds: 5),
-          ),
+          const SnackBar(content: Text('No records found')),
         );
       }
+      setState(() {
+        bills = [];
+      });
     } finally {
       setState(() {
         isLoading = false;
@@ -287,24 +281,20 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
     }
   }
 
-// Update the _parseDouble helper method to be more robust
+// Helper function to safely parse doubles
   double _parseDouble(dynamic value) {
     if (value == null) return 0.0;
-    if (value is int) return value.toDouble();
-    if (value is double) return value;
+    if (value is num) return value.toDouble();
     if (value is String) {
       try {
         return double.parse(value);
-      } catch (e) {
+      } catch (_) {
         return 0.0;
       }
     }
-    try {
-      return double.parse(value.toString());
-    } catch (e) {
-      return 0.0;
-    }
+    return 0.0;
   }
+
 
   Widget _buildDateField({
     required String label,
