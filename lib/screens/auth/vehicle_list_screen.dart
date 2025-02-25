@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http_parser/http_parser.dart';
 import '../../config/model/vehicle_model.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../config/services/api_service.dart';
@@ -111,7 +112,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
       setState(() => isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading vehicles: $e')),
+          SnackBar(content: Text('Error in fetching vehicles data')),
         );
       }
     }
@@ -141,13 +142,13 @@ class _VehicleScreenState extends State<VehicleScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vehicle added successfully')),
+            const SnackBar(content: Text('Vehicle details added Successfully')),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error adding vehicle: $e')),
+            SnackBar(content: Text('Error: Adding vehicle details is Failed')),
           );
         }
       } finally {
@@ -876,15 +877,24 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
       request.fields['end_date'] = endDate!.toIso8601String();
 
       // Add file
-      var file = await http.MultipartFile.fromPath('file', filePath!);
+      var file = await http.MultipartFile.fromPath('file', filePath!,contentType: MediaType('application', 'pdf'),);
       request.files.add(file);
 
-      // Set headers
-      request.headers['Content-Type'] = 'multipart/form-data';
+      // // Set headers
+      // request.headers['Content-Type'] = 'multipart/form-data';
+
+      // // Debug logs
+      // print('Sending request to: ${request.url}');
+      // print('Fields: ${request.fields}');
+      // print('Files: ${request.files.map((f) => "${f.filename} (${f.length} bytes)").toList()}');
 
       // Send request
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
+
+      // print('Response status: ${response.statusCode}');
+      // print('Response body: ${response.body}');
+
 
       if (response.statusCode == 200) {
         if (mounted) {
