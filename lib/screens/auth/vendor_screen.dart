@@ -341,7 +341,9 @@ class _VendorScreenState extends State<VendorScreen> {
                   labelText: 'PAN',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.credit_card),
+                  counterText: '10 characters required',
                 ),
+                maxLength: 10, // Restrict to exactly 10 characters
                 onChanged: (value) {
                   final upperText = value.toUpperCase();
                   _panController.value = TextEditingValue(
@@ -349,8 +351,11 @@ class _VendorScreenState extends State<VendorScreen> {
                     selection: TextSelection.collapsed(offset: upperText.length),
                   );
                 },
-                validator: (value) =>
-                value?.isEmpty ?? true ? 'Please enter PAN' : null,
+                validator: (value) {
+                  if (value?.isEmpty ?? true) return 'Please enter PAN';
+                  if (value!.length != 10) return 'PAN must be exactly 10 characters';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -359,7 +364,9 @@ class _VendorScreenState extends State<VendorScreen> {
                   labelText: 'GST',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.receipt_long),
+                  counterText: '15 characters required',
                 ),
+                maxLength: 15, // Restrict to exactly 15 characters
                 onChanged: (value) {
                   final upperText = value.toUpperCase();
                   _gstController.value = TextEditingValue(
@@ -367,8 +374,11 @@ class _VendorScreenState extends State<VendorScreen> {
                     selection: TextSelection.collapsed(offset: upperText.length),
                   );
                 },
-                validator: (value) =>
-                value?.isEmpty ?? true ? 'Please enter GST' : null,
+                validator: (value) {
+                  if (value?.isEmpty ?? true) return 'Please enter GST';
+                  if (value!.length != 15) return 'GST must be exactly 15 characters';
+                  return null;
+                },
               ),
               const SizedBox(height: 24),
               SizedBox(

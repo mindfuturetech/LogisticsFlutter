@@ -39,6 +39,8 @@ class _ReportCardState extends State<ReportCard> {
   double weight = 0.00;
   late TextEditingController actualWeightController;
   String? transactionStatus;
+  // Add this with your other state variables
+  Map<String, bool> downloadingFiles = {};
 
 
   @override
@@ -160,40 +162,40 @@ class _ReportCardState extends State<ReportCard> {
     }
   }
 
-
-  Future<void> _downloadFile(String id, String field, Map<String, dynamic>? fileData) async {
-    if (!mounted) return;
-
-    if (fileData == null || fileData['originalname'] == null) {
-      _showError('File information is missing');
-      return;
-    }
-
-    setState(() => isLoading = true);
-
-    try {
-      print('Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
-
-      await _reportsService.downloadFile(
-        id,
-        field,
-        fileData['originalname'],
-      );
-
-      if (mounted) {
-        _showSuccess('File downloaded successfully');
-      }
-    } catch (e) {
-      print('Download failed: $e');
-      if (mounted) {
-        _showError(e.toString().replaceAll('Exception:', '').trim());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
-    }
-  }
+  //files final
+  // Future<void> _downloadFile(String id, String field, Map<String, dynamic>? fileData) async {
+  //   if (!mounted) return;
+  //
+  //   if (fileData == null || fileData['originalname'] == null) {
+  //     _showError('File information is missing');
+  //     return;
+  //   }
+  //
+  //   setState(() => isLoading = true);
+  //
+  //   try {
+  //     print('Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
+  //
+  //     await _reportsService.downloadFile(
+  //       id,
+  //       field,
+  //       fileData['originalname'],
+  //     );
+  //
+  //     if (mounted) {
+  //       _showSuccess('File downloaded successfully');
+  //     }
+  //   } catch (e) {
+  //     print('Download failed: $e');
+  //     if (mounted) {
+  //       _showError(e.toString().replaceAll('Exception:', '').trim());
+  //     }
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => isLoading = false);
+  //     }
+  //   }
+  // }
 
   // Future<void> _saveChanges() async {
   //   setState(() => isLoading = true);
@@ -408,8 +410,111 @@ class _ReportCardState extends State<ReportCard> {
   }
 
 
+//final
+  // Widget _buildFileField(String label, String field, Map<String, dynamic>? fileData) {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(vertical: 4),
+  //     child: Row(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         SizedBox(
+  //           width: 120,
+  //           child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+  //         ),
+  //         Expanded(
+  //           child: isEditing
+  //               ? Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               ElevatedButton(
+  //                 onPressed: () => _pickFile(field),
+  //                 child: Text(selectedFiles[field] != null ? 'Change File' : 'Select File'),
+  //               ),
+  //               if (selectedFiles[field] != null)
+  //                 Padding(
+  //                   padding: const EdgeInsets.only(left: 8, top: 8),
+  //                   child: Text(
+  //                     path.basename(selectedFiles[field]!.path),
+  //                     style: const TextStyle(fontSize: 12),
+  //                   ),
+  //                 ),
+  //               if (selectedFiles[field] != null)
+  //                 Padding(
+  //                   padding: const EdgeInsets.only(left: 8, top: 4),
+  //                   child: Text(
+  //                     'File size must be under 1MB',
+  //                     style: TextStyle(
+  //                       fontSize: 11,
+  //                       color: Colors.grey[600],
+  //                       fontStyle: FontStyle.italic,
+  //                     ),
+  //                   ),
+  //                 ),
+  //             ],
+  //           )
+  //               : fileData != null && fileData['filepath'] != null
+  //               ? TextButton.icon(
+  //             onPressed: isLoading
+  //                 ? null
+  //                 : () => _downloadFile(widget.report.id!, field, fileData),
+  //             icon: isLoading
+  //                 ? const SizedBox(
+  //               width: 20,
+  //               height: 20,
+  //               child: CircularProgressIndicator(strokeWidth: 2),
+  //             )
+  //                 : const Icon(Icons.file_download),
+  //             label: Text(
+  //               isLoading
+  //                   ? 'Downloading...'
+  //                   : fileData['originalname'] ?? 'Download',
+  //               softWrap: true,
+  //             ),
+  //           )
+  //               : const Text('No file', style: TextStyle(color: Colors.red)),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+  Future<void> _downloadFile(String id, String field, Map<String, dynamic>? fileData) async {
+    if (!mounted) return;
+
+    if (fileData == null || fileData['originalname'] == null) {
+      _showError('File information is missing');
+      return;
+    }
+
+    setState(() => downloadingFiles[field] = true); // Set loading for this specific field
+
+    try {
+      print('Starting download - ID: $id, Field: $field, File: ${fileData['originalname']}');
+
+      await _reportsService.downloadFile(
+        id,
+        field,
+        fileData['originalname'],
+      );
+
+      if (mounted) {
+        _showSuccess('File downloaded successfully');
+      }
+    } catch (e) {
+      print('Download failed: $e');
+      if (mounted) {
+        _showError(e.toString().replaceAll('Exception:', '').trim());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => downloadingFiles[field] = false); // Reset loading for this specific field
+      }
+    }
+  }
+
 
   Widget _buildFileField(String label, String field, Map<String, dynamic>? fileData) {
+    bool isDownloading = downloadingFiles[field] ?? false; // Check loading state for this field
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -423,39 +528,39 @@ class _ReportCardState extends State<ReportCard> {
             child: isEditing
                 ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ElevatedButton(
-                  onPressed: () => _pickFile(field),
-                  child: Text(selectedFiles[field] != null ? 'Change File' : 'Select File'),
-                ),
-                if (selectedFiles[field] != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8, top: 8),
-                    child: Text(
-                      path.basename(selectedFiles[field]!.path),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                if (selectedFiles[field] != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8, top: 4),
-                    child: Text(
-                      'File size must be under 1MB',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-              ],
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => _pickFile(field),
+                              child: Text(selectedFiles[field] != null ? 'Change File' : 'Select File'),
+                            ),
+                            if (selectedFiles[field] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8, top: 8),
+                                child: Text(
+                                  path.basename(selectedFiles[field]!.path),
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            if (selectedFiles[field] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8, top: 4),
+                                child: Text(
+                                  'File size must be under 1MB',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                          ],
             )
                 : fileData != null && fileData['filepath'] != null
                 ? TextButton.icon(
-              onPressed: isLoading
+              onPressed: isDownloading
                   ? null
                   : () => _downloadFile(widget.report.id!, field, fileData),
-              icon: isLoading
+              icon: isDownloading
                   ? const SizedBox(
                 width: 20,
                 height: 20,
@@ -463,7 +568,7 @@ class _ReportCardState extends State<ReportCard> {
               )
                   : const Icon(Icons.file_download),
               label: Text(
-                isLoading
+                isDownloading
                     ? 'Downloading...'
                     : fileData['originalname'] ?? 'Download',
                 softWrap: true,
@@ -475,7 +580,6 @@ class _ReportCardState extends State<ReportCard> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final localDateTime = widget.report.createdAt!.toLocal();
