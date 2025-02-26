@@ -140,15 +140,39 @@ class _VehicleScreenState extends State<VehicleScreen> {
         _clearForm();
         await _loadVehicles();
 
+        // if (mounted) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     const SnackBar(content: Text('Vehicle details added Successfully')),
+        //   );
+        // }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vehicle details added Successfully')),
+            SnackBar(
+              content: Text(
+                'Vehicle details added Successfully',
+                style: TextStyle(color: Colors.white), // Ensures readability
+              ),
+              backgroundColor: Colors.green, // Green background for success
+              duration: Duration(seconds: 3), // Auto-dismiss after 3 seconds
+            ),
           );
         }
       } catch (e) {
+        // if (mounted) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     SnackBar(content: Text('Error: Adding vehicle details is Failed')),
+        //   );
+        // }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: Adding vehicle details is Failed')),
+            SnackBar(
+              content: Text(
+                'Error: Adding vehicle details is Failed',
+                style: TextStyle(color: Colors.white), // Ensures readability
+              ),
+              backgroundColor: Colors.red, // Green background for success
+              duration: Duration(seconds: 3), // Auto-dismiss after 3 seconds
+            ),
           );
         }
       } finally {
@@ -727,10 +751,24 @@ class VehicleCard extends StatelessWidget {
         File file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
 
-        // Notify the user
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Document downloaded successfully: $filePath')),
-        );
+        // // Notify the user
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(content: Text('Document downloaded successfully')),
+        // );
+        // Notify the user with a green background SnackBar
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Document downloaded successfully',
+                style: TextStyle(color: Colors.white), // Ensure text is readable
+              ),
+              backgroundColor: Colors.green, // Green background
+              // behavior: SnackBarBehavior.floating, // Floating effect
+              duration: Duration(seconds: 3), // Visible duration
+            ),
+          );
+        }
 
         // Open the file
         OpenFile.open(filePath);
