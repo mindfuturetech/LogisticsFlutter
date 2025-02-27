@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http_parser/http_parser.dart';
 import '../../config/model/vehicle_model.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../config/services/api_service.dart';
@@ -111,7 +112,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
       setState(() => isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading vehicles: $e')),
+          SnackBar(content: Text('Error in fetching vehicles data')),
         );
       }
     }
@@ -139,15 +140,39 @@ class _VehicleScreenState extends State<VehicleScreen> {
         _clearForm();
         await _loadVehicles();
 
+        // if (mounted) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     const SnackBar(content: Text('Vehicle details added Successfully')),
+        //   );
+        // }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vehicle added successfully')),
+            SnackBar(
+              content: Text(
+                'Vehicle details added Successfully',
+                style: TextStyle(color: Colors.white), // Ensures readability
+              ),
+              backgroundColor: Colors.green, // Green background for success
+              duration: Duration(seconds: 3), // Auto-dismiss after 3 seconds
+            ),
           );
         }
       } catch (e) {
+        // if (mounted) {
+        //   ScaffoldMessenger.of(context).showSnackBar(
+        //     SnackBar(content: Text('Error: Adding vehicle details is Failed')),
+        //   );
+        // }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error adding vehicle: $e')),
+            SnackBar(
+              content: Text(
+                'Error: Adding vehicle details is Failed',
+                style: TextStyle(color: Colors.white), // Ensures readability
+              ),
+              backgroundColor: Colors.red, // Green background for success
+              duration: Duration(seconds: 3), // Auto-dismiss after 3 seconds
+            ),
           );
         }
       } finally {
@@ -726,10 +751,24 @@ class VehicleCard extends StatelessWidget {
         File file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
 
-        // Notify the user
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Document downloaded successfully: $filePath')),
-        );
+        // // Notify the user
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(content: Text('Document downloaded successfully')),
+        // );
+        // Notify the user with a green background SnackBar
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Document downloaded successfully',
+                style: TextStyle(color: Colors.white), // Ensure text is readable
+              ),
+              backgroundColor: Colors.green, // Green background
+              // behavior: SnackBarBehavior.floating, // Floating effect
+              duration: Duration(seconds: 3), // Visible duration
+            ),
+          );
+        }
 
         // Open the file
         OpenFile.open(filePath);
@@ -876,15 +915,24 @@ class _DocumentUploadDialogState extends State<DocumentUploadDialog> {
       request.fields['end_date'] = endDate!.toIso8601String();
 
       // Add file
-      var file = await http.MultipartFile.fromPath('file', filePath!);
+      var file = await http.MultipartFile.fromPath('file', filePath!,contentType: MediaType('application', 'pdf'),);
       request.files.add(file);
 
-      // Set headers
-      request.headers['Content-Type'] = 'multipart/form-data';
+      // // Set headers
+      // request.headers['Content-Type'] = 'multipart/form-data';
+
+      // // Debug logs
+      // print('Sending request to: ${request.url}');
+      // print('Fields: ${request.fields}');
+      // print('Files: ${request.files.map((f) => "${f.filename} (${f.length} bytes)").toList()}');
 
       // Send request
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
+
+      // print('Response status: ${response.statusCode}');
+      // print('Response body: ${response.body}');
+
 
       if (response.statusCode == 200) {
         if (mounted) {

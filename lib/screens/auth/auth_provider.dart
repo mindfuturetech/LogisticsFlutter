@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../config/services/auth_service.dart';
 import 'login_screen.dart';
@@ -36,9 +37,19 @@ class AuthProvider extends ChangeNotifier {
     // Delay to ensure stack is cleared before navigation
     await Future.delayed(Duration(milliseconds: 100));
 
+    // Clear SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    // // Navigate to Login screen & clear all previous routes
+    // Navigator.pushAndRemoveUntil(
+    //   context,
+    //   MaterialPageRoute(builder: (context) => LoginScreen()),
+    //       (route) => false,
+    // );
+
     // Navigate to Login screen & clear all previous routes
-    Navigator.pushAndRemoveUntil(
-      context,
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => LoginScreen()),
           (route) => false,
     );
