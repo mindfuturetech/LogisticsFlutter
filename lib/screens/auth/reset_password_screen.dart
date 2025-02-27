@@ -23,6 +23,56 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureNewPassword = true;
   bool _obscureRetypePassword = true;
 
+  // Future<void> _resetPassword() async {
+  //   if (!_formKey.currentState!.validate()) {
+  //     return;
+  //   }
+  //
+  //   setState(() {
+  //     _isLoading = true;
+  //     _errorMessage = '';
+  //   });
+  //
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse('https://shreelalchand.com/logistics/reset-password'),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({
+  //         'username': _usernameController.text,
+  //         'currentPassword': _currentPasswordController.text,
+  //         'newPassword': _newPasswordController.text,
+  //         'retypePassword': _retypePasswordController.text,
+  //       }),
+  //     );
+  //
+  //     final data = jsonDecode(response.body);
+  //
+  //     if (response.statusCode == 200) {
+  //       // Password reset successful
+  //       if (!mounted) return;
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text(data['message']),
+  //           backgroundColor: Colors.green,
+  //         ),
+  //       );
+  //       Navigator.pop(context); // Close the reset password screen
+  //     } else {
+  //       setState(() {
+  //         _errorMessage = data['message'] ?? 'Failed to reset password';
+  //       });
+  //     }
+  //   } catch (e) {
+  //     setState(() {
+  //       _errorMessage = 'Network error occurred. Please try again.';
+  //     });
+  //   } finally {
+  //     setState(() {
+  //       _isLoading = false;
+  //     });
+  //   }
+  // }
+
   Future<void> _resetPassword() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -71,6 +121,47 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         _isLoading = false;
       });
     }
+  }
+
+// Add this function to validate password complexity
+  String? validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+
+    // Check for uppercase letters
+    if (!value.contains(RegExp(r'[A-Z]'))) {
+      return 'Password must contain at least one uppercase letter';
+    }
+
+    // Check for lowercase letters
+    if (!value.contains(RegExp(r'[a-z]'))) {
+      return 'Password must contain at least one lowercase letter';
+    }
+
+    // Check for numbers
+    if (!value.contains(RegExp(r'[0-9]'))) {
+      return 'Password must contain at least one number';
+    }
+
+    return null; // Password is valid
+  }
+
+// Add this function to validate password matching
+  String? validatePasswordMatch(String? value, String password) {
+    if (value == null || value.isEmpty) {
+      return 'Please retype your password';
+    }
+
+    if (value != password) {
+      return 'Passwords do not match';
+    }
+
+    return null; // Passwords match
   }
 
   @override
@@ -159,6 +250,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   labelText: 'New Password',
                   prefixIcon: const Icon(Icons.lock_outline),
                   border: const OutlineInputBorder(),
+                  helperText: 'Must be at least 8 characters with uppercase, lowercase & numbers with symbol',
+                  helperMaxLines: 2,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
@@ -170,15 +263,27 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     },
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a new password';
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+
+                    // Single RegExp to check all conditions:
+                    // - At least 8 characters
+                    // - At least one uppercase letter
+                    // - At least one lowercase letter
+                    // - At least one number
+                    // - At least one special character
+                    final passwordRegex = RegExp(
+                        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()+_\-=\[\]{}|;:"\\,.<>/?])' +
+                            r'[A-Za-z\d!@#$%^&*()+_\-=\[\]{}|;:"\\,.<>/?]{8,}$');
+
+                    if (!passwordRegex.hasMatch(value)) {
+                      return 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.';
+                    }
+
+                    return null; // Return null for valid input
                   }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters long';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
 
@@ -231,7 +336,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 )
                     : const Text(
                   'Reset Password',
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

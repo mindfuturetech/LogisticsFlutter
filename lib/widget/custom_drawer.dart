@@ -31,7 +31,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
       username = prefs.getString('_username') ;
     });
   }
-
+  String capitalizeFirstLetter(String? text) {
+    if (text == null || text.isEmpty) return 'Guest';
+    return text[0].toUpperCase() + (text.length > 1 ? text.substring(1) : '');
+  }
   bool isRestricted(String route) {
     return profile != null &&
         profileRestrictions.containsKey(profile) &&
@@ -72,7 +75,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                     // ),
                       // Add some spacing between the two texts
                     Text(
-                      "Hello, ${username ?? 'Guest'}",
+                      "Hello, ${capitalizeFirstLetter(username)}",
                       style: TextStyle(fontSize: 20, color: Colors.white),
                     ),
                   ],

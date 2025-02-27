@@ -41,7 +41,6 @@ class _BusinessScreenState extends State<BusinessScreen> {
   DateTime? startDate;
   DateTime? endDate;
   List<TripDetails> reports = [];
-  List<TripDetails> _reports = [];
   List<String> trucks = [];
   bool isLoading = false;
   double grandTotal = 0.0;
@@ -451,27 +450,6 @@ class _BusinessScreenState extends State<BusinessScreen> {
     } catch (e) {
       // Silently handle opening errors
       debugPrint('Error opening file: $e');
-    }
-  }
-  Future<void> _pickFile(String field) async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-      );
-
-      if (result != null) {
-        setState(() {
-          selectedFiles[field] = File(result.files.single.path!);
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking file: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 

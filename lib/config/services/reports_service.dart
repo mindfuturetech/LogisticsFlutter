@@ -132,97 +132,158 @@ class ReportsService {
   //     throw Exception('Failed to fetch vendors: ${e.message}');
   //   }
   // }
-
-
   Future<void> updateReport(
       String id,
       double weight,
-      double actualWeight,
+      double actualWeight, // ✅ Change to Double
       String transactionStatus,
-      Map<String, dynamic> uploadedFiles,
-      ) async {
+      Map<String, File?> files) async {
     try {
-      print('Updating report with ID: $id');
+      var uri = '$baseUrl/api/reports/$id';
+      FormData formData = FormData();
 
-      // Create FormData instance
-      final formData = FormData();
-
-      // Add basic fields
+      // Add text fields
       formData.fields.addAll([
-        MapEntry('id', id),
-        MapEntry('transactionStatus', transactionStatus),
-        MapEntry('weight', weight.toString()),
-        MapEntry('actualWeight', actualWeight.toString()),
+        MapEntry("id", id),
+        MapEntry("transactionStatus", transactionStatus),
+        MapEntry("weight", weight.toString()),
+        MapEntry("actualWeight", actualWeight.toString()), // ✅ Convert Double to String
       ]);
 
-      // Add files with specific field names matching backend
-      final validFileFields = [
-        'DieselSlipImage',
-        'LoadingAdvice',
-        'InvoiceCompany',
-        'WeightmentSlip'
-      ];
+      // Add files if they exist - with proper content type handling
+      for (var entry in files.entries) {
+        if (entry.value != null) {
+          String fileName = entry.value!.path.split('/').last;
+          String mimeType = 'application/octet-stream'; // Default
 
-      for (var entry in uploadedFiles.entries) {
-        if (validFileFields.contains(entry.key)) {
-          print('Adding file for field: ${entry.key}');
-
-          // Handle the file data correctly based on structure
-          if (entry.value is Map) {
-            // If uploadedFiles contains response data from uploadFile method
-            if (entry.value['data'] != null && entry.value['data']['filepath'] != null) {
-              // If the backend returns a filepath, you might want to send that rather than the original file
-              formData.fields.add(MapEntry(entry.key, entry.value['data']['filepath']));
-            }
-          } else if (entry.value is File) {
-            // If uploadedFiles contains File objects
-            final file = await MultipartFile.fromFile(
-              entry.value.path,
-              filename: path.basename(entry.value.path),
-              contentType: MediaType('application', 'pdf'),
-            );
-            formData.files.add(MapEntry(entry.key, file));
-          } else {
-            // Skip invalid entries
-            print('Skipping invalid entry for ${entry.key}: ${entry.value.runtimeType}');
+          // Set proper mime type for PDFs
+          if (fileName.toLowerCase().endsWith('.pdf')) {
+            mimeType = 'application/pdf';
           }
+
+          formData.files.add(MapEntry(
+            entry.key,
+            await MultipartFile.fromFile(
+              entry.value!.path,
+              filename: fileName,
+              contentType: MediaType.parse(mimeType),
+            ),
+          ));
         }
       }
 
-      print('Sending request to: $baseUrl/api/reports/$id');
-
-      final response = await _dio.post(
-        '/api/reports/$id',
+      // Use POST with appropriate headers
+      var response = await _dio.post(
+        uri,
         data: formData,
         options: Options(
           headers: {
             'Content-Type': 'multipart/form-data',
           },
-          validateStatus: (status) => status! < 500,
+          // Increase timeout to 60 seconds (or adjust as needed)
+          receiveTimeout: const Duration(seconds: 140),
+          sendTimeout: const Duration(seconds: 140),
+
         ),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response data: ${response.data}');
-
       if (response.statusCode != 200) {
-        final errorMessage = response.data?['message'] ?? 'Failed to update report';
-        throw Exception(errorMessage);
+        throw Exception('Failed to update report: ${response.data}');
       }
-
-      // Successfully updated
-      print('Report updated successfully');
-    } on DioException catch (e) {
-      print('Dio error: ${e.message}');
-      print('Response error: ${e.response?.data}');
-
-      final errorMessage = e.response?.data?['message'] ?? 'Error updating report';
-      throw Exception(errorMessage);
     } catch (e) {
-      print('General error: $e');
       throw Exception('Error updating report: $e');
     }
   }
+
+  // Future<void> updateReport(
+  //     String id,
+  //     double weight,
+  //     double actualWeight,
+  //     String transactionStatus,
+  //     Map<String, dynamic> uploadedFiles,
+  //     ) async {
+  //   try {
+  //     print('Updating report with ID: $id');
+  //
+  //     // Create FormData instance
+  //     final formData = FormData();
+  //
+  //     // Add basic fields
+  //     formData.fields.addAll([
+  //       MapEntry('id', id),
+  //       MapEntry('transactionStatus', transactionStatus),
+  //       MapEntry('weight', weight.toString()),
+  //       MapEntry('actualWeight', actualWeight.toString()),
+  //     ]);
+  //
+  //     // Add files with specific field names matching backend
+  //     final validFileFields = [
+  //       'DieselSlipImage',
+  //       'LoadingAdvice',
+  //       'InvoiceCompany',
+  //       'WeightmentSlip'
+  //     ];
+  //
+  //     for (var entry in uploadedFiles.entries) {
+  //       if (validFileFields.contains(entry.key)) {
+  //         print('Adding file for field: ${entry.key}');
+  //
+  //         // Handle the file data correctly based on structure
+  //         if (entry.value is Map) {
+  //           // If uploadedFiles contains response data from uploadFile method
+  //           if (entry.value['data'] != null && entry.value['data']['filepath'] != null) {
+  //             // If the backend returns a filepath, you might want to send that rather than the original file
+  //             formData.fields.add(MapEntry(entry.key, entry.value['data']['filepath']));
+  //           }
+  //         } else if (entry.value is File) {
+  //           // If uploadedFiles contains File objects
+  //           final file = await MultipartFile.fromFile(
+  //             entry.value.path,
+  //             filename: path.basename(entry.value.path),
+  //             contentType: MediaType('application', 'pdf'),
+  //           );
+  //           formData.files.add(MapEntry(entry.key, file));
+  //         } else {
+  //           // Skip invalid entries
+  //           print('Skipping invalid entry for ${entry.key}: ${entry.value.runtimeType}');
+  //         }
+  //       }
+  //     }
+  //
+  //     print('Sending request to: $baseUrl/api/reports/$id');
+  //
+  //     final response = await _dio.post(
+  //       '/api/reports/$id',
+  //       data: formData,
+  //       options: Options(
+  //         headers: {
+  //           'Content-Type': 'multipart/form-data',
+  //         },
+  //         validateStatus: (status) => status! < 500,
+  //       ),
+  //     );
+  //
+  //     print('Response status: ${response.statusCode}');
+  //     print('Response data: ${response.data}');
+  //
+  //     if (response.statusCode != 200) {
+  //       final errorMessage = response.data?['message'] ?? 'Failed to update report';
+  //       throw Exception(errorMessage);
+  //     }
+  //
+  //     // Successfully updated
+  //     print('Report updated successfully');
+  //   } on DioException catch (e) {
+  //     print('Dio error: ${e.message}');
+  //     print('Response error: ${e.response?.data}');
+  //
+  //     final errorMessage = e.response?.data?['message'] ?? 'Error updating report';
+  //     throw Exception(errorMessage);
+  //   } catch (e) {
+  //     print('General error: $e');
+  //     throw Exception('Error updating report: $e');
+  //   }
+  // }
 
   // Future<List<String>> getTrucks() async {
   //   try {

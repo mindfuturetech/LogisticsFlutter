@@ -64,84 +64,99 @@ class _ReportCardState extends State<ReportCard> {
   }
 
 // Update your _pickFile method with size validation
-  Future _pickFile(String field) async {
+//   Future _pickFile(String field) async {
+//     try {
+//       FilePickerResult? result = await FilePicker.platform.pickFiles(
+//         type: FileType.custom,
+//         allowedExtensions: ['pdf'],
+//       );
+//
+//       if (result != null) {
+//         File originalFile = File(result.files.single.path!);
+//
+//         // Check file size
+//         bool isValidSize = await _checkFileSize(originalFile);
+//
+//         if (!isValidSize) {
+//           _showError('File size exceeds 1MB limit. Please upload a smaller file.');
+//           return;
+//         }
+//
+//         setState(() {
+//           selectedFiles[field] = originalFile;
+//         });
+//       }
+//     } catch (e) {
+//       _showError('Error picking file: $e');
+//     }
+//   }
+
+
+  Future<void> _pickFile(String field) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
       );
 
-      if (result != null) {
-        File originalFile = File(result.files.single.path!);
+      // if (result != null) {
+      //   setState(() {
+      //     selectedFiles[field] = File(result.files.single.path!);
+      //   });
+      // }
+      //check PDF and less than 1MB
+      if (result != null && result.files.single.path != null) {
+        PlatformFile file = result.files.single;
 
-        // Check file size
-        bool isValidSize = await _checkFileSize(originalFile);
-
-        if (!isValidSize) {
-          _showError('File size exceeds 1MB limit. Please upload a smaller file.');
-          return;
+        // ✅ Check file type
+        if (!file.path!.toLowerCase().endsWith('.pdf')) {
+          throw Exception('Please select a PDF file only');
         }
 
+        // ✅ Check file size (1MB = 1 * 1024 * 1024 bytes)
+        if (file.size > 1 * 1024 * 1024) {
+          // throw FormatException('File size must be less than 1MB');
+          // Show popup for file size limit
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text("File Too Large"),
+                content: Text("File size must be less than 1MB"),
+                actions: [
+                  TextButton(
+                    child: Text("OK"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+          return; // Exit the function
+        }
         setState(() {
-          selectedFiles[field] = originalFile;
+          selectedFiles[field] = File(file.path!);
         });
       }
+
     } catch (e) {
       _showError('Error picking file: $e');
     }
   }
 
-// Update your _saveChanges method (without compression)
-  Future _saveChanges() async {
+
+  Future<void> _saveChanges() async { //<void is missing>
     setState(() => isLoading = true);
     try {
-      // Create a map to store upload results
-      Map<String, dynamic> uploadedFiles = {};
-
-      // Upload each file
-      for (var entry in selectedFiles.entries) {
-        if (entry.value != null) {
-          try {
-            print('Preparing to upload file for field: ${entry.key}');
-
-            // Upload the file and get the response
-            var uploadResult = await _reportsService.uploadFile(
-              entry.value!,
-              entry.key,
-            );
-
-            print('Upload result for ${entry.key}: $uploadResult');
-
-            if (uploadResult != null) {
-              // Store the result
-              uploadedFiles[entry.key] = uploadResult;
-            }
-          } catch (e) {
-            print('Error uploading ${entry.key}: $e');
-            // Continue with other files even if one fails
-            _showError('Error uploading ${entry.key}: $e');
-          }
-        }
-      }
-
-      print('All uploads finished. uploadedFiles: $uploadedFiles');
-
-      // Check if any files were uploaded successfully
-      if (uploadedFiles.isEmpty && selectedFiles.isNotEmpty) {
-        _showError('No files were uploaded successfully.');
-        setState(() => isLoading = false);
-        return;
-      }
-
-      print('Preparing to update report...');
-
-      // Update report with file information
       await _reportsService.updateReport(
         widget.report.id!,
         weight,
         double.tryParse(actualWeightController.text) ?? 0.0,
+        // ✅ Convert String to Double
         transactionStatus!,
-        uploadedFiles,
+        selectedFiles,
       );
 
       setState(() {
@@ -155,12 +170,81 @@ class _ReportCardState extends State<ReportCard> {
 
       _showSuccess('Changes saved successfully');
     } catch (e) {
-      print('Error in _saveChanges: $e');
       _showError('Error saving changes: $e');
     } finally {
       setState(() => isLoading = false);
     }
   }
+// Update your _saveChanges method (without compression)
+//   Future _saveChanges() async {
+//     setState(() => isLoading = true);
+//     try {
+//       // Create a map to store upload results
+//       Map<String, dynamic> uploadedFiles = {};
+//
+//       // Upload each file
+//       for (var entry in selectedFiles.entries) {
+//         if (entry.value != null) {
+//           try {
+//             print('Preparing to upload file for field: ${entry.key}');
+//
+//             // Upload the file and get the response
+//             var uploadResult = await _reportsService.uploadFile(
+//               entry.value!,
+//               entry.key,
+//             );
+//
+//             print('Upload result for ${entry.key}: $uploadResult');
+//
+//             if (uploadResult != null) {
+//               // Store the result
+//               uploadedFiles[entry.key] = uploadResult;
+//             }
+//           } catch (e) {
+//             print('Error uploading ${entry.key}: $e');
+//             // Continue with other files even if one fails
+//             _showError('Error uploading ${entry.key}: $e');
+//           }
+//         }
+//       }
+//
+//       print('All uploads finished. uploadedFiles: $uploadedFiles');
+//
+//       // Check if any files were uploaded successfully
+//       if (uploadedFiles.isEmpty && selectedFiles.isNotEmpty) {
+//         _showError('No files were uploaded successfully.');
+//         setState(() => isLoading = false);
+//         return;
+//       }
+//
+//       print('Preparing to update report...');
+//
+//       // Update report with file information
+//       await _reportsService.updateReport(
+//         widget.report.id!,
+//         weight,
+//         double.tryParse(actualWeightController.text) ?? 0.0,
+//         transactionStatus!,
+//         uploadedFiles,
+//       );
+//
+//       setState(() {
+//         isEditing = false;
+//         selectedFiles.clear();
+//       });
+//
+//       if (widget.onRefresh != null) {
+//         widget.onRefresh!();
+//       }
+//
+//       _showSuccess('Changes saved successfully');
+//     } catch (e) {
+//       print('Error in _saveChanges: $e');
+//       _showError('Error saving changes: $e');
+//     } finally {
+//       setState(() => isLoading = false);
+//     }
+//   }
 
   //files final
   // Future<void> _downloadFile(String id, String field, Map<String, dynamic>? fileData) async {
@@ -541,18 +625,18 @@ class _ReportCardState extends State<ReportCard> {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ),
-                            if (selectedFiles[field] != null)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 8, top: 4),
-                                child: Text(
-                                  'File size must be under 1MB',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey[600],
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ),
+                            // if (selectedFiles[field] != null)
+                            //   Padding(
+                            //     padding: const EdgeInsets.only(left: 8, top: 4),
+                            //     child: Text(
+                            //       'File size must be under 1MB',
+                            //       style: TextStyle(
+                            //         fontSize: 11,
+                            //         color: Colors.grey[600],
+                            //         fontStyle: FontStyle.italic,
+                            //       ),
+                            //     ),
+                            //   ),
                           ],
             )
                 : fileData != null && fileData['filepath'] != null

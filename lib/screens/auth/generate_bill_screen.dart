@@ -249,6 +249,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
               truckType: x['truck_type']?.toString() ?? '',
               transactionStatus: x['transaction_status']?.toString() ?? '',
               dieselSlipNumber: x['diesel_slip_number']?.toString() ?? '',
+              createdAt: x['date'] != null ? DateTime.parse(x['date']) : null,
             )),
           );
         });
@@ -421,7 +422,15 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
   }
   Widget _buildBillCard(TripDetails bill) {
     final isSelected = selectedTripIds.contains(bill.tripId);
-    final localDateTime = DateTime.now().toLocal();
+
+    // If createdAt is null, use a default date (or handle as needed)
+    DateTime localDateTime;
+    if (bill.createdAt != null) {
+      // Convert to IST (UTC+5:30)
+      localDateTime = bill.createdAt!.toUtc().add(const Duration(hours: 5, minutes: 30));
+    } else {
+      localDateTime = DateTime.now();
+    }
 
     return Card(
       elevation: 4,
@@ -470,7 +479,7 @@ class _GenerateBillScreenState extends State<GenerateBillScreen> {
                         const Icon(Icons.access_time, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          DateFormat('hh:mm a').format(localDateTime),
+                          DateFormat('h:mm a').format(localDateTime),
                           style: const TextStyle(fontSize: 14),
                         ),
                       ],

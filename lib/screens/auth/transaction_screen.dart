@@ -548,7 +548,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     Icon(Icons.access_time, size: 16),
                                     SizedBox(width: 4),
                                     Text(
-                                      DateFormat('HH:mm').format(trip.createdAt ?? DateTime.now()),
+                                      DateFormat('hh:mm a').format(
+                                          trip.createdAt?.toLocal() ?? DateTime.now()
+                                      ),
                                       style: TextStyle(fontSize: 14),
                                     ),
                                   ],
